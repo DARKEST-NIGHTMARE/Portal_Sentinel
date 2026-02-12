@@ -5,7 +5,7 @@ from fastapi import UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select,func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from database import get_db
@@ -44,6 +44,9 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+class RoleChangeRequest(BaseModel):
+    role: str
+
 def create_jwt_token(email: str, name: str):
     payload = {
         "sub": email,
@@ -65,9 +68,17 @@ def get_current_user(request: Request):
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
+    
+async def get_current_admin(user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    email = user.get("sub")
+    stmt = select(User).where(User.email == email)
+    result = await db.execute(stmt)
+    db_user = result.scalars().first()
+    
+    if not db_user or db_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized. Admins only!")
+    return db_user
 
-
-import bcrypt
 
 def hash_password(password: str) -> str:
     pwd_bytes = password.encode('utf-8')
@@ -94,7 +105,8 @@ async def get_user_info(user: dict = Depends(get_current_user), db: AsyncSession
     return {
         "name": db_user.name,
         "email": db_user.email,
-        "avatar_url": db_user.avatar_url  
+        "avatar_url": db_user.avatar_url,  
+        "role": db_user.role
     }
 
 @app.post("/api/auth/login")
@@ -176,7 +188,8 @@ async def google_login(payload: GoogleLoginRequest, db: AsyncSession = Depends(g
         "user": {
             "name": name,
             "email": email,
-            "avatar_url": avatar
+            "avatar_url": avatar,
+            "role": db_user.role if db_user else "user"
         }
     }
 
@@ -220,6 +233,43 @@ async def register_user(
 
     return {"message": "User registered successfully"}
 
+
+@app.get("/api/admin/users")
+async def get_all_users(admin_user: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
+    stmt = select(User)
+    result = await db.execute(stmt)
+    users = result.scalars().all()
+    return users
+
+@app.put("/api/admin/users/{user_id}/role")
+async def change_user_role(
+    user_id: int, 
+    request: RoleChangeRequest,
+    admin_user: User = Depends(get_current_admin), 
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(User).where(User.id == user_id)
+    result = await db.execute(stmt)
+    user_to_update = result.scalars().first()
+    
+    if not user_to_update:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user_to_update.id == admin_user.id and request.role != "admin":
+ 
+        count_stmt = select(func.count(User.id)).where(User.role == "admin")
+        count_res = await db.execute(count_stmt)
+        total_admins = count_res.scalar()
+        
+        if total_admins <= 1:
+            raise HTTPException(
+                status_code=400, 
+                detail="Operation Forbidden: You are the only Admin left. Promote someone else first!"
+            )
+    user_to_update.role = request.role
+    await db.commit()
+    
+    return {"message": f"User role updated to {request.role}"}
 @app.get("/logout")
 def logout():
     return {"message": "Logged out successfully"}
