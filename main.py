@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException, Depends ,Request,Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import status
+from fastapi import UploadFile, File, Form
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -12,6 +14,9 @@ import httpx
 import jwt
 import datetime
 import os
+import shutil
+import uuid
+import bcrypt
 
 app = FastAPI()
 
@@ -20,6 +25,9 @@ GOOGLE_CLIENT_SECRET = "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"
 REDIRECT_URI = "http://localhost:3000"
 JWT_SECRET = "24ef95f11e11bd9c42168eaa48966834892220d38e541d99197c273cf6bcf5ca"
 ALGORITHM = "HS256"
+
+os.makedirs("static/profiles", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,20 +67,54 @@ def get_current_user(request: Request):
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
+import bcrypt
+
+def hash_password(password: str) -> str:
+    pwd_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password=pwd_bytes, salt=salt)
+    return hashed_password.decode('utf-8') 
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    password_byte_enc = plain_password.encode('utf-8')
+    hashed_password_bytes = hashed_password.encode('utf-8')
+    return bcrypt.checkpw(password=password_byte_enc, hashed_password=hashed_password_bytes)
+
 @app.get("/user")
-def get_user_info(user: dict = Depends(get_current_user)):
+async def get_user_info(user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    email = user.get("sub")
+    
+    stmt = select(User).where(User.email == email)
+    result = await db.execute(stmt)
+    db_user = result.scalars().first()
+    
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     return {
-        "name": user.get("name"),
-        "email": user.get("sub"),
-        "avatar_url": None 
+        "name": db_user.name,
+        "email": db_user.email,
+        "avatar_url": db_user.avatar_url  
     }
 
 @app.post("/api/auth/login")
-def login(payload: LoginRequest):
-    if payload.username == "user" and payload.password == "password":
-        token = create_jwt_token(payload.username, "Standard User")
-        return {"token": token}
-    raise HTTPException(status_code=401, detail="Bad credentials")
+async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
+    # if payload.username == "user" and payload.password == "password":
+    #     token = create_jwt_token(payload.username, "Standard User")
+    #     return {"token": token}
+    # raise HTTPException(status_code=401, detail="Bad credentials")
+    stmt = select(User).where(User.email == payload.username)
+    result = await db.execute(stmt)
+    db_user = result.scalars().first()
+
+    if not db_user or not db_user.password_hash:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    if not verify_password(payload.password, db_user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    token = create_jwt_token(db_user.email, db_user.name)
+    return {"token": token}
 
 @app.post("/api/auth/google")
 async def google_login(payload: GoogleLoginRequest, db: AsyncSession = Depends(get_db)):
@@ -137,6 +179,46 @@ async def google_login(payload: GoogleLoginRequest, db: AsyncSession = Depends(g
             "avatar_url": avatar
         }
     }
+
+
+@app.post("/api/auth/register")
+async def register_user(
+    name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    profile_picture: UploadFile = File(None),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(User).where(User.email == email)
+    result = await db.execute(stmt)
+    if result.scalars().first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    avatar_url = None
+    if profile_picture:
+        file_extension = profile_picture.filename.split(".")[-1]
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        file_path = f"static/profiles/{unique_filename}"
+
+        contents = await profile_picture.read()
+        with open(file_path, "wb") as f:
+            f.write
+
+        avatar_url = f"/static/profiles/{unique_filename}"
+
+    hashed_password = hash_password(password)
+    
+    new_user = User(
+        email=email, 
+        name=name, 
+        avatar_url=avatar_url, 
+        provider="local",
+        password_hash=hashed_password
+    )
+    db.add(new_user)
+    await db.commit()
+
+    return {"message": "User registered successfully"}
 
 @app.get("/logout")
 def logout():
