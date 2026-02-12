@@ -9,3 +9,4 @@ class User(Base):
     name = Column(String)
     avatar_url = Column(String, nullable=True)
     provider = Column(String, default="google")  
+    password_hash = Column(String, nullable=True)
