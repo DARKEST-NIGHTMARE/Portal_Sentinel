@@ -6,12 +6,13 @@ import uuid
 import os
 
 from .. import models, schemas, database, dependencies
+from ..config import settings
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
-GOOGLE_CLIENT_ID = "655977974466-ptubcou0dq48ethbamn16du702djgl14.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET = "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"
-REDIRECT_URI = "http://localhost:3000"
+# GOOGLE_CLIENT_ID = "655977974466-ptubcou0dq48ethbamn16du702djgl14.apps.googleusercontent.com"
+# GOOGLE_CLIENT_SECRET = "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"
+# REDIRECT_URI = "http://localhost:3000"
 
 @router.post("/login")
 async def login(payload: schemas.LoginRequest, db: AsyncSession = Depends(database.get_db)):
@@ -33,11 +34,11 @@ async def google_login(payload: schemas.GoogleLoginRequest, db: AsyncSession = D
     async with httpx.AsyncClient() as client:
         token_url = "https://oauth2.googleapis.com/token"
         token_data = {
-            "client_id": GOOGLE_CLIENT_ID,
-            "client_secret": GOOGLE_CLIENT_SECRET,
+            "client_id": settings.google_client_id,
+            "client_secret": settings.google_client_secret,
             "code": payload.code,
             "grant_type": "authorization_code",
-            "redirect_uri": REDIRECT_URI,
+            "redirect_uri": settings.google_redirect_url,
         }
         
         token_res = await client.post(token_url, data=token_data)

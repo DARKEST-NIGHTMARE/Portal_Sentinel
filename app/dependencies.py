@@ -6,9 +6,10 @@ import datetime
 import bcrypt
 from .database import get_db
 from .models import User
+from .config import settings
 
-JWT_SECRET = "24ef95f11e11bd9c42168eaa48966834892220d38e541d99197c273cf6bcf5ca"
-ALGORITHM = "HS256"
+JWT_SECRET = settings.secret_key
+ALGORITHM = settings.algorithm
 
 def hash_password(password: str) -> str:
     pwd_bytes = password.encode('utf-8')

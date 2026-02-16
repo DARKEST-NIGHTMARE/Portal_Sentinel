@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .database import engine, Base, get_db
 from .routers import auth, employees, users
 from . import models, dependencies
+from .config import settings
 
 app = FastAPI()
 
@@ -16,7 +17,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[settings.frontend_url],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
