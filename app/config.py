@@ -1,4 +1,8 @@
-from pydantic_settings import BaseSettings
+import os
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ENV_FILE_PATH = os.path.join(BASE_DIR, ".env")
 
 class Settings(BaseSettings):
     
@@ -17,7 +21,14 @@ class Settings(BaseSettings):
     google_client_secret: str
     google_redirect_uri: str
     
-    class Coonfig:
-        env_file = ".env"
+    # class Coonfig:
+    #     # env_file = ".env"
+    #     env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+    #     env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE_PATH,
+        env_file_encoding='utf-8',
+        extra='ignore' 
+    )
         
 settings = Settings()

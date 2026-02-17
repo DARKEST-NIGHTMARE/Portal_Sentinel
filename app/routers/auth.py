@@ -4,6 +4,7 @@ from sqlalchemy import select
 import httpx
 import uuid
 import os
+import shutil
 
 from .. import models, schemas, database, dependencies
 from ..config import settings
@@ -38,7 +39,7 @@ async def google_login(payload: schemas.GoogleLoginRequest, db: AsyncSession = D
             "client_secret": settings.google_client_secret,
             "code": payload.code,
             "grant_type": "authorization_code",
-            "redirect_uri": settings.google_redirect_url,
+            "redirect_uri": settings.google_redirect_uri,
         }
         
         token_res = await client.post(token_url, data=token_data)

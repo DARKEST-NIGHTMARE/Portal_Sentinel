@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel ,EmailStr
 from typing import Optional
 
 class GoogleLoginRequest(BaseModel):
@@ -16,3 +16,13 @@ class EmployeeCreate(BaseModel):
 
 class RoleChangeRequest(BaseModel):
     role: str
+
+class UserOut(BaseModel):
+    id: int
+    name: str
+    email: EmailStr
+    role: str
+    avatar_url: Optional[str] = None  
+
+class Config:
+    from_attributes = True
