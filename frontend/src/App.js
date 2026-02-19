@@ -1,0 +1,55 @@
+import React, { useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchUser } from "./redux/authSlice";
+import "./assets/App.css";
+import PrivateRoute from "./utils/PrivateRoute";
+import AuthCallback from "./pages/AuthCallback";
+
+const Login = React.lazy(() => import("./pages/Login"));
+const Dashboard = React.lazy(() => import("./pages/Dashboard"));
+const Users = React.lazy(() => import("./pages/Users"));
+const NotFound = React.lazy(() => import("./pages/NotFound"));
+
+function App() {
+  const dispatch = useDispatch();
+  const { token, user } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (token && !user) {
+      dispatch(fetchUser());
+    }
+  }, [token, user, dispatch]);
+
+  return (
+    <div className={`app-container ${user ? "logged-in" : ""}`}>
+      <Router>
+        <React.Suspense fallback={<div>Loading...</div>}>
+          <Routes>
+            <Route path="/" element={!user ? <Login /> : <Navigate to="/dashboard" />} />
+            <Route
+              path="/dashboard"
+              element={
+                <PrivateRoute>
+                  <Dashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <PrivateRoute>
+                  <Users />
+                </PrivateRoute>
+              }
+            />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </React.Suspense>
+      </Router>
+    </div>
+  );
+}
+
+export default App;

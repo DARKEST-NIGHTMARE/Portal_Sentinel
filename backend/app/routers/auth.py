@@ -11,8 +11,6 @@ from ..config import settings
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
-# GOOGLE_CLIENT_ID = "655977974466-ptubcou0dq48ethbamn16du702djgl14.apps.googleusercontent.com"
-# GOOGLE_CLIENT_SECRET = "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"
 # REDIRECT_URI = "http://localhost:3000"
 
 @router.post("/login")
