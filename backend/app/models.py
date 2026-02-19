@@ -1,4 +1,7 @@
-from sqlalchemy import Column, Integer, String, Boolean
+import enum
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Enum, JSON
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 from .database import Base
 
 class User(Base):
@@ -19,3 +22,24 @@ class Employee(Base):
     department = Column(String)
     salary = Column(Integer)
     is_active = Column(Boolean, default=True)
+
+class EventType(str, enum.Enum):
+    FAILED_LOGIN = "FAILED_LOGIN"
+    REFRESH_USED = "REFRESH_USED"
+    SUSPICIOUS_ACTIVITY = "SUSPICIOUS_ACTIVITY"
+    ACTIVE_SESSION = "ACTIVE_SESSION"
+    ACCOUNT_LOCKED = "ACCOUNT_LOCKED"
+
+class SecurityEvent(Base):
+    __tablename__ = "security_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"),nullable=True)
+
+    event_type = Column(Enum(EventType), nullable=False)
+    ip_address = Column(String, nullable=True)
+    event_metadata = Column(JSON, default={})
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user = relationship("User", backref="security_logs")
