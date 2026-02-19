@@ -30,12 +30,20 @@ class UserOut(BaseModel):
 class SecurityEventOut(BaseModel):
     id: int
     user_id: Optional[int] = None
-    event_type = EventType
+    event_type: EventType
     ip_address: Optional[str] = None
     event_metadata: Dict[str, Any] = {}
     created_at: datetime
 
     username: Optional[str] = None 
+
+class UserActivityOut(BaseModel):
+    user_id: int
+    name: str
+    email: str
+    last_seen: datetime
+    last_ip: Optional[str] = None
+    total_logins: int
 
     class Config:
         from_attributes = True

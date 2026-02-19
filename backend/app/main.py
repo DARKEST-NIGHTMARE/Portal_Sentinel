@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .database import engine, Base, get_db
-from .routers import auth, employees, users
+from .routers import auth, employees, users, security
 from . import models, dependencies
 from .config import settings
 
@@ -31,6 +31,7 @@ async def startup():
 app.include_router(auth.router)
 app.include_router(employees.router)
 app.include_router(users.router)
+app.include_router(security.router)
 
 @app.get("/user")
 async def get_user_info(

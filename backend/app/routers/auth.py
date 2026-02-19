@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Form, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, Form, UploadFile, File, Request # <-- Added Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import httpx
@@ -8,28 +8,43 @@ import shutil
 
 from .. import models, schemas, database, dependencies
 from ..config import settings
+from ..services.security_service import SecurityService 
+from ..models import EventType 
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
-# REDIRECT_URI = "http://localhost:3000"
-
 @router.post("/login")
-async def login(payload: schemas.LoginRequest, db: AsyncSession = Depends(database.get_db)):
+async def login(request: Request, payload: schemas.LoginRequest, db: AsyncSession = Depends(database.get_db)):
+    client_ip = request.client.host
+
+    # --- 1. Brute Force Check ---
+    if await SecurityService.is_ip_locked_out(db, client_ip):
+        await SecurityService.log_event(db, EventType.ACCOUNT_LOCKED, client_ip, event_metadata={"reason": "Too many failed attempts"})
+        raise HTTPException(status_code=429, detail="Too many failed login attempts. Please try again in 5 minutes.")
+
     stmt = select(models.User).where(models.User.email == payload.username)
     result = await db.execute(stmt)
     db_user = result.scalars().first()
 
-    if not db_user or not db_user.password_hash:
+    if not db_user or not db_user.password_hash or not dependencies.verify_password(payload.password, db_user.password_hash):
+        await SecurityService.log_event(
+            db, EventType.FAILED_LOGIN, client_ip, 
+            user_id=db_user.id if db_user else None, 
+            event_metadata={"attempted_email": payload.username}
+        )
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    if not dependencies.verify_password(payload.password, db_user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+    await SecurityService.check_suspicious_activity(db, db_user.id, client_ip)
+    await SecurityService.log_event(db, EventType.ACTIVE_SESSION, client_ip, user_id=db_user.id)
 
     token = dependencies.create_jwt_token(db_user.email, db_user.name)
     return {"token": token}
 
+
 @router.post("/google")
-async def google_login(payload: schemas.GoogleLoginRequest, db: AsyncSession = Depends(database.get_db)):
+async def google_login(request: Request, payload: schemas.GoogleLoginRequest, db: AsyncSession = Depends(database.get_db)):
+    client_ip = request.client.host
+    
     async with httpx.AsyncClient() as client:
         token_url = "https://oauth2.googleapis.com/token"
         token_data = {
@@ -72,12 +87,16 @@ async def google_login(payload: schemas.GoogleLoginRequest, db: AsyncSession = D
         db.add(new_user)
         await db.commit()     
         await db.refresh(new_user) 
+        db_user = new_user 
         print(f"Created New User: {email}")
     else:
         db_user.name = name
         db_user.avatar_url = avatar
         await db.commit()
         print(f"Welcome back: {email}")
+
+    await SecurityService.check_suspicious_activity(db, db_user.id, client_ip)
+    await SecurityService.log_event(db, EventType.ACTIVE_SESSION, client_ip, user_id=db_user.id, event_metadata={"provider": "google"})
 
     local_token = dependencies.create_jwt_token(email, name)
     
@@ -87,7 +106,7 @@ async def google_login(payload: schemas.GoogleLoginRequest, db: AsyncSession = D
             "name": name,
             "email": email,
             "avatar_url": avatar,
-            "role": db_user.role if db_user else "user"
+            "role": db_user.role if hasattr(db_user, 'role') else "user"
         }
     }
 
