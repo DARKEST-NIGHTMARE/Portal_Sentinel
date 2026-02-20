@@ -17,9 +17,23 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 async def login(request: Request, payload: schemas.LoginRequest, db: AsyncSession = Depends(database.get_db)):
     client_ip = request.client.host
 
-    # --- 1. Brute Force Check ---
     if await SecurityService.is_ip_locked_out(db, client_ip):
-        await SecurityService.log_event(db, EventType.ACCOUNT_LOCKED, client_ip, event_metadata={"reason": "Too many failed attempts"})
+
+        stmt = select(models.User).where(models.User.email == payload.username)
+        result = await db.execute(stmt)
+        target_user = result.scalars().first()
+
+
+        await SecurityService.log_event(
+            db, 
+            EventType.ACCOUNT_LOCKED, 
+            client_ip, 
+            user_id=target_user.id if target_user else None, 
+            event_metadata={
+                "reason": "Too many failed attempts",
+                "targeted_email": payload.username
+            }
+        )
         raise HTTPException(status_code=429, detail="Too many failed login attempts. Please try again in 5 minutes.")
 
     stmt = select(models.User).where(models.User.email == payload.username)

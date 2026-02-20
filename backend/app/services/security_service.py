@@ -51,7 +51,7 @@ class SecurityService:
         result = await db.execute(stmt)
         last_login = result.scalars().first()
 
-        # If there is a recent login AND the IP is different, flag it!
+        # If there is a recent login AND the IP is different, log suspicious activity
         if last_login and last_login.ip_address != current_ip:
             await SecurityService.log_event(
                 db=db,
