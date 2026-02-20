@@ -13,9 +13,58 @@ from ..models import EventType
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
+
+async def get_ip_location(ip: str) -> str:
+    if ip in ["127.0.0.1", "::1", "localhost", "0.0.0.0"]:
+        return "Localhost (Testing)"
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.get(f"http://ip-api.com/json/{ip}?fields=city,country,status")
+            data = res.json()
+            if data.get("status") == "success":
+                return f"{data.get('city')}, {data.get('country')}"
+    except Exception as e:
+        print(f"Location lookup failed: {e}")
+    return "Unknown Location"
+
+async def get_coord_location(lat: float, lon: float) -> str:
+    try:
+        async with httpx.AsyncClient() as client:
+            # OpenStreetMap requires a custom User-Agent to prevent blocking
+            headers = {"User-Agent": "SecurityApp/1.0"}
+            res = await client.get(
+                f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}",
+                headers=headers
+            )
+            if res.status_code == 200:
+                data = res.json()
+                address = data.get("address", {})
+                city = address.get("city") or address.get("town") or address.get("village") or address.get("county")
+                country = address.get("country")
+                
+                if city and country:
+                    return f"{city}, {country}"
+    except Exception as e:
+        print(f"Coordinate lookup failed: {e}")
+        
+    return None 
+
 @router.post("/login")
 async def login(request: Request, payload: schemas.LoginRequest, db: AsyncSession = Depends(database.get_db)):
     client_ip = request.client.host
+    location = None
+    location_source = "unknown"
+
+    if payload.latitude and payload.longitude:
+        location = await get_coord_location(payload.latitude, payload.longitude)
+        if location:
+            location_source = "GPS(precise)"
+
+    if not location:
+        location = await get_ip_location(client_ip)
+        location_source = "IP(approximate)"
+    # location = await get_ip_location(client_ip)
 
     if await SecurityService.is_ip_locked_out(db, client_ip):
 
@@ -49,7 +98,13 @@ async def login(request: Request, payload: schemas.LoginRequest, db: AsyncSessio
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     await SecurityService.check_suspicious_activity(db, db_user.id, client_ip)
-    await SecurityService.log_event(db, EventType.ACTIVE_SESSION, client_ip, user_id=db_user.id)
+    await SecurityService.log_event(
+        db, 
+        EventType.ACTIVE_SESSION, 
+        client_ip, 
+        user_id=db_user.id,
+        event_metadata={"location": location, "location_source": location_source} 
+    )
 
     token = dependencies.create_jwt_token(db_user.email, db_user.name)
     return {"token": token}
@@ -58,6 +113,20 @@ async def login(request: Request, payload: schemas.LoginRequest, db: AsyncSessio
 @router.post("/google")
 async def google_login(request: Request, payload: schemas.GoogleLoginRequest, db: AsyncSession = Depends(database.get_db)):
     client_ip = request.client.host
+
+    location = None
+    location_source = "unknown"
+
+    if payload.latitude and payload.longitude:
+        location = await get_coord_location(payload.latitude, payload.longitude)
+        if location:
+            location_source = "GPS(precise)"
+
+    if not location:
+        location = await get_ip_location(client_ip)
+        location_source = "IP(approximate)"
+
+    # location = await get_ip_location(client_ip)
     
     async with httpx.AsyncClient() as client:
         token_url = "https://oauth2.googleapis.com/token"
@@ -110,7 +179,12 @@ async def google_login(request: Request, payload: schemas.GoogleLoginRequest, db
         print(f"Welcome back: {email}")
 
     await SecurityService.check_suspicious_activity(db, db_user.id, client_ip)
-    await SecurityService.log_event(db, EventType.ACTIVE_SESSION, client_ip, user_id=db_user.id, event_metadata={"provider": "google"})
+    await SecurityService.log_event(
+        db, 
+        EventType.ACTIVE_SESSION, 
+        client_ip, 
+        user_id=db_user.id, 
+        event_metadata={"provider": "google", "location": location, "location_source": location_source})
 
     local_token = dependencies.create_jwt_token(email, name)
     

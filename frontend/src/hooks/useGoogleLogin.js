@@ -2,6 +2,28 @@ import { useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
 import { googleLogin } from "../redux/authSlice";
 
+const getUserCoordinates = () => {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(null);
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude
+        });
+      },
+      (error) => {
+        console.log("Location denied or timed out. Falling back to IP.");
+        resolve(null);
+      },
+      { timeout: 5000 }
+    );
+  });
+};
+
 export const useGoogleLogin = () => {
   const dispatch = useDispatch();
   const processing = useRef(false);
@@ -11,7 +33,7 @@ export const useGoogleLogin = () => {
   const REDIRECT_URI = process.env.REACT_APP_GOOGLE_REDIRECT_URI; 
 
   useEffect(() => {
-    const messageListener = (event) => {
+    const messageListener = async (event) => {
       if (event.origin !== FRONTEND_URL) return;
       
       if (processing.current) return;
@@ -19,7 +41,13 @@ export const useGoogleLogin = () => {
       if (event.data.type === "GOOGLE_LOGIN_SUCCESS" && event.data.code) {
         console.log("Code received in Main Window:", event.data.code);
         processing.current = true; 
-        dispatch(googleLogin(event.data.code));
+
+        const coords = await getUserCoordinates();
+        dispatch(googleLogin({
+          code:event.data.code,
+        latitude: coords? coords.lat:null,
+        longitude: coords? coords.lon:null
+      }));
       }
     };
 

@@ -25,9 +25,9 @@ export const registerUser = createAsyncThunk(
   }
 );
 
-export const googleLogin = createAsyncThunk("auth/google", async (code, { rejectWithValue }) => {
+export const googleLogin = createAsyncThunk("auth/google", async (payload, { rejectWithValue }) => {
   try {
-    const res = await api.post("/api/auth/google", { code });
+    const res = await api.post("/api/auth/google", payload);
     localStorage.setItem("token", res.data.token);
     return res.data; 
   } catch (err) {

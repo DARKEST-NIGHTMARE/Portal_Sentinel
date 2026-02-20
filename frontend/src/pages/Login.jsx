@@ -1,9 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { loginUser ,registerUser} from "../redux/authSlice";
+import { loginUser, registerUser } from "../redux/authSlice";
 import { useGoogleLogin } from "../hooks/useGoogleLogin";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+
+const getUserCoordinates = () => {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(null); 
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude
+        });
+      },
+      (error) => {
+        console.log("Location denied or timed out. Falling back to IP.");
+        resolve(null); 
+      },
+      { timeout: 5000 } 
+    );
+  });
+};
 
 const Login = () => {
     const dispatch = useDispatch();
@@ -13,6 +34,9 @@ const Login = () => {
 
     const { loginGooglePopup } = useGoogleLogin();
     const [isRegistering, setIsRegistering] = useState(false);
+    
+    const [isLocating, setIsLocating] = useState(false);
+    
     const [form, setForm] = useState({ username: "", password: "", name: "", email: "" });
 
     useEffect(() => {
@@ -25,6 +49,7 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
         if (isRegistering) {
             const formData = new FormData();
             formData.append("name", form.name);
@@ -43,7 +68,20 @@ const Login = () => {
                 alert(`Failed: ${err}`);
             }
         } else {
-            dispatch(loginUser({ username: form.username, password: form.password }));
+            setIsLocating(true); 
+            
+            const coords = await getUserCoordinates();
+
+            const payload = {
+                username: form.username,
+                password: form.password,
+                latitude: coords ? coords.lat : null,
+                longitude: coords ? coords.lon : null
+            };
+
+            dispatch(loginUser(payload));
+            
+            setIsLocating(false);
         }
     };
 
@@ -123,7 +161,9 @@ const Login = () => {
             className="input-field" 
             required 
           />
-          <button type="submit" className="btn btn-jwt">Secure Login</button>
+          <button type="submit" className="btn btn-jwt" disabled={isLocating}>
+            {isLocating ? "Securing Connection..." : "Secure Login"}
+          </button>
         </>
       )}
     </form>

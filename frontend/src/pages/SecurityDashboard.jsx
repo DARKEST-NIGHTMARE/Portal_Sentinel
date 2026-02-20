@@ -83,7 +83,7 @@ const SecurityDashboard = () => {
                 </div>
 
                 {loading && page === 0 ? (
-                    <div className="text-center-muted">Loading Systems...</div>
+                    <div className="text-center-muted">Loading...</div>
                 ) : error ? (
                     <div className="text-center-muted" style={{ color: '#e53e3e' }}>Error: {error}</div>
                 ) : (
@@ -184,6 +184,11 @@ const SecurityDashboard = () => {
                                                     </td>
                                                     <td style={{ color: '#718096', fontFamily: 'monospace' }}>
                                                         {event.ip_address || 'N/A'}
+                                                        {event.event_metadata?.location && (
+                                                          <div style={{ fontSize: '0.75rem', color: '#4a5568', marginTop: '4px', fontFamily: 'Inter, sans-serif' }}>
+                                                             📍 {event.event_metadata.location}
+                                                                          </div>
+                                                                     )}
                                                     </td>
                                                     <td style={{ color: '#718096', fontSize: '0.8rem', maxWidth: '200px' }}>
                                                         {JSON.stringify(event.event_metadata).replace(/[{}]/g, '').replace(/"/g, '')}

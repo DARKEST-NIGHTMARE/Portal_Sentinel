@@ -5,10 +5,14 @@ from .models import EventType
 
 class GoogleLoginRequest(BaseModel):
     code: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class LoginRequest(BaseModel):
     username: str
     password: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class EmployeeCreate(BaseModel):
     name: str
