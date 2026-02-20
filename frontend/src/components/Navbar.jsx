@@ -22,9 +22,14 @@ const Navbar = ({ user, onLogout, activePage }) => {
                         Employees
                     </Link>
                     {user.role === 'admin' && (
+                        <>
                         <Link to="/users" className={activePage === 'users' ? 'active-link' : ''}>
                             Users
                         </Link>
+                        <Link to="/admin/security" className={activePage === 'security' ? 'active-link' : ''}>
+                                Security
+                            </Link>
+                            </>
                     )}
                 </div>
             </div>

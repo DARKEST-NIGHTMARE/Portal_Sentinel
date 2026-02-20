@@ -17,7 +17,7 @@ router = APIRouter(
 # --- RBAC Dependency ---
 async def require_admin(
     current_user = Depends(dependencies.get_current_user),
-    db: AsyncSession = Depends(database.get_db), # <--- Inject Database
+    db: AsyncSession = Depends(database.get_db), 
     token = Depends(token_auth_scheme)
 ):
     """Middleware to block non-admin users with a database fallback."""

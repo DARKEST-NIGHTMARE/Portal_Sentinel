@@ -33,7 +33,8 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-      <Navbar user={user} onLogout={() => dispatch(logout())} />
+      <Navbar user={user} onLogout={() => dispatch(logout())}
+      activePage= "dashboard" />
       
       <div className="glass-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>

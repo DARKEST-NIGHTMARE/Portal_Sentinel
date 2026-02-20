@@ -5,6 +5,7 @@ import { fetchUser } from "./redux/authSlice";
 import "./assets/App.css";
 import PrivateRoute from "./utils/PrivateRoute";
 import AuthCallback from "./pages/AuthCallback";
+import SecurityDashboard from "./pages/SecurityDashboard";
 
 const Login = React.lazy(() => import("./pages/Login"));
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
@@ -43,6 +44,7 @@ function App() {
                 </PrivateRoute>
               }
             />
+            <Route path="/admin/security" element={<SecurityDashboard />}/>
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
