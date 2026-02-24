@@ -51,6 +51,35 @@ const SecurityDashboard = () => {
         fetchDashboardData();
     }, [page, eventTypeFilter]);
 
+    useEffect(() => {
+        const backendUrl = process.env.REACT_APP_API_URL || "http://localhost:8081";
+        const wsUrl = backendUrl.replace(/^http/, "ws") + "/api/admin/security/ws";
+        
+        const ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => console.log("Security WebSockets Connected");
+
+        ws.onmessage = (event) => {
+            const newEvent = JSON.parse(event.data);
+            console.log("Live Security Alert:", newEvent);
+
+            setEvents((prevEvents) => {
+                if (eventTypeFilter && newEvent.event_type !== eventTypeFilter) {
+                    return prevEvents;
+                }
+                return [newEvent, ...prevEvents].slice(0, limit);
+            });
+        };
+
+        ws.onerror = (error) => console.error("WebSocket Error:", error);
+
+        return () => {
+            if (ws.readyState === 1) { 
+                ws.close();
+            }
+        };
+    }, [eventTypeFilter, limit]);
+
     const getEventBadgeClass = (type) => {
         switch (type) {
             case "FAILED_LOGIN": return "badge-failed";
@@ -82,9 +111,10 @@ const SecurityDashboard = () => {
                     <h1>Security Center</h1>
                 </div>
 
-                {loading && page === 0 ? (
+                {/* {loading && page === 0 ? (
                     <div className="text-center-muted">Loading...</div>
-                ) : error ? (
+                ) : error ? ( */}
+                {error ? (
                     <div className="text-center-muted" style={{ color: '#e53e3e' }}>Error: {error}</div>
                 ) : (
                     <>
@@ -137,7 +167,9 @@ const SecurityDashboard = () => {
 
                         <div className="dashboard-card">
                             <div className="table-header-flex">
-                                <h2 style={{ border: 'none', margin: 0, padding: 0 }}>System Audit Log</h2>
+                                <h2 style={{ border: 'none', margin: 0, padding: 0 }}> Logs 
+                                {loading && <span style={{fontSize: '0.8rem', color: '#718096', marginLeft: '10px'}}>Updating...</span>}
+                                 </h2>
 
                                 <select
                                     className="filter-select"
@@ -164,7 +196,11 @@ const SecurityDashboard = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {events.length === 0 ? (
+                                    {loading ? (
+                                            <tr>
+                                                <td colSpan="5" className="text-center-muted">Filtering Logs...</td>
+                                            </tr>
+                                        ) : events.length === 0 ? (
                                             <tr>
                                                 <td colSpan="5" className="text-center-muted">No events found matching your criteria.</td>
                                             </tr>

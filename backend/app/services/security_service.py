@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from datetime import datetime, timedelta, timezone
 from ..models import SecurityEvent, EventType
+from .websocket import security_ws_manager
 
 class SecurityService:
     @staticmethod
@@ -19,6 +20,23 @@ class SecurityService:
         db.add(new_event)
         await db.commit()
         await db.refresh(new_event)
+
+        try:
+            event_type_str = new_event.event_type.value if hasattr(new_event.event_type, 'value') else str(new_event.event_type)
+
+            event_payload = {
+                "id": new_event.id,
+                "event_type": event_type_str,
+                "user_id": new_event.user_id,
+                "ip_address": new_event.ip_address,
+                "event_metadata": new_event.event_metadata,
+                "created_at": new_event.created_at.isoformat()
+            }
+            await security_ws_manager.broadcast(event_payload)
+        
+        except Exception as e:
+            print(f"Failed to broadcast security event: {e}")
+            pass
         return new_event
 
     @staticmethod
@@ -51,7 +69,7 @@ class SecurityService:
         result = await db.execute(stmt)
         last_login = result.scalars().first()
 
-        # If there is a recent login AND the IP is different, log suspicious activity
+        # If there is a recent login AND the IP is different, log it as suspicious
         if last_login and last_login.ip_address != current_ip:
             await SecurityService.log_event(
                 db=db,

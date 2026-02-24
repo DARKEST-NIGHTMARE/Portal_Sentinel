@@ -10,7 +10,7 @@ const Navbar = ({ user, onLogout, activePage }) => {
       ? u.avatar_url 
       : `${BACKEND_URL}${u.avatar_url}`; 
   };
-  console.log(avatarSrc(user));
+//   console.log(avatarSrc(user));
 
     return (
         <nav className="navbar">

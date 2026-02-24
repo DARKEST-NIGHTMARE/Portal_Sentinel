@@ -5,7 +5,6 @@ import httpx
 import uuid
 import os
 import shutil
-
 from .. import models, schemas, database, dependencies
 from ..config import settings
 from ..services.security_service import SecurityService 
@@ -31,7 +30,6 @@ async def get_ip_location(ip: str) -> str:
 async def get_coord_location(lat: float, lon: float) -> str:
     try:
         async with httpx.AsyncClient() as client:
-            # OpenStreetMap requires a custom User-Agent to prevent blocking
             headers = {"User-Agent": "SecurityApp/1.0"}
             res = await client.get(
                 f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}",

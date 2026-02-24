@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc
 from typing import List, Optional
@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi.security import HTTPBearer
 
 from .. import models, schemas, database, dependencies
+from ..services.websocket import security_ws_manager
 
 token_auth_scheme = HTTPBearer()
 
@@ -125,3 +126,12 @@ async def get_active_users(
 
     activity_list.sort(key=lambda x: x["last_seen"], reverse=True)
     return activity_list
+
+@router.websocket("/ws")
+async def websocket_security_endpoint(websocket: WebSocket):
+    await security_ws_manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        security_ws_manager.disconnect(websocket)
