@@ -15,9 +15,12 @@ const SecurityDashboard = () => {
 
     const { user } = useSelector((state) => state.auth);
 
-    const [events, setEvents] = useState([]);
+    // const [events, setEvents] = useState([]);
+    const [logs, setLogs] = useState([]);
+    const [alerts, setAlerts] = useState([]);
     const [activeUsers, setActiveUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [tableLoading, setTableLoading] = useState(true);
     const [error, setError] = useState(null);
 
     const [eventTypeFilter, setEventTypeFilter] = useState("");
@@ -30,53 +33,67 @@ const SecurityDashboard = () => {
     }
 
     useEffect(() => {
-        const fetchDashboardData = async () => {
-            setLoading(true);
-            setError(null);
+        const fetchStaticWidgets = async () => {
             try {
-                const [eventsData, usersData] = await Promise.all([
-                    securityApi.getEvents(page * limit, limit, eventTypeFilter),
-                    securityApi.getActiveUsers(7)
-                ]);
-
-                setEvents(eventsData);
+                const usersData = await securityApi.getActiveUsers(7);
                 setActiveUsers(usersData);
+
+                const [suspicious, locked] = await Promise.all([
+                    securityApi.getEvents(0, 10, "SUSPICIOUS_ACTIVITY"),
+                    securityApi.getEvents(0, 10, "ACCOUNT_LOCKED")
+                ]);
+                
+                const combinedAlerts = [...suspicious, ...locked]
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                    .slice(0, 10);
+                
+                setAlerts(combinedAlerts);
             } catch (err) {
-                setError(err.response?.data?.detail || "Failed to load security data.");
-            } finally {
-                setLoading(false);
+                console.error("Failed to load top widgets:", err);
             }
         };
 
-        fetchDashboardData();
-    }, [page, eventTypeFilter]);
+        fetchStaticWidgets();
+    }, []);
 
     useEffect(() => {
+        const fetchTableLogs = async () => {
+            setTableLoading(true);
+            setError(null);
+            try {
+                const logsData = await securityApi.getEvents(page * limit, limit, eventTypeFilter);
+                setLogs(logsData);
+            } catch (err) {
+                setError(err.response?.data?.detail || "Failed to load audit logs.");
+            } finally {
+                setTableLoading(false);
+            }
+        };
+
+        fetchTableLogs();
+    }, [page, eventTypeFilter]);
+
+useEffect(() => {
         const backendUrl = process.env.REACT_APP_API_URL || "http://localhost:8081";
         const wsUrl = backendUrl.replace(/^http/, "ws") + "/api/admin/security/ws";
-        
         const ws = new WebSocket(wsUrl);
-
-        ws.onopen = () => console.log("Security WebSockets Connected");
 
         ws.onmessage = (event) => {
             const newEvent = JSON.parse(event.data);
-            console.log("Live Security Alert:", newEvent);
 
-            setEvents((prevEvents) => {
+            if (newEvent.event_type === "SUSPICIOUS_ACTIVITY" || newEvent.event_type === "ACCOUNT_LOCKED") {
+                setAlerts(prevAlerts => [newEvent, ...prevAlerts].slice(0, 10));
+            }
+            setLogs(prevLogs => {
                 if (eventTypeFilter && newEvent.event_type !== eventTypeFilter) {
-                    return prevEvents;
+                    return prevLogs;
                 }
-                return [newEvent, ...prevEvents].slice(0, limit);
+                return [newEvent, ...prevLogs].slice(0, limit);
             });
         };
 
-        ws.onerror = (error) => console.error("WebSocket Error:", error);
-
         return () => {
-            if (ws.readyState === 1) { 
-                ws.close();
-            }
+            if (ws.readyState === 1) ws.close();
         };
     }, [eventTypeFilter, limit]);
 
@@ -98,49 +115,39 @@ const SecurityDashboard = () => {
         );
     }
 
-    return (
+   return (
         <div className="dashboard-container">
-            <Navbar
-                user={user}
-                onLogout={handleLogout}
-                activePage="security"
-            />
+            <Navbar user={user} onLogout={handleLogout} activePage="security" />
 
             <div className="glass-card">
                 <div className="security-header">
                     <h1>Security Center</h1>
                 </div>
 
-                {/* {loading && page === 0 ? (
-                    <div className="text-center-muted">Loading...</div>
-                ) : error ? ( */}
                 {error ? (
                     <div className="text-center-muted" style={{ color: '#e53e3e' }}>Error: {error}</div>
                 ) : (
                     <>
                         <div className="security-grid">
-
                             <div className="dashboard-card">
                                 <h2 style={{ color: '#c53030' }}> Alerts</h2>
                                 <div className="alert-list">
-                                    {events.filter(e => e.event_type === "SUSPICIOUS_ACTIVITY" || e.event_type === "ACCOUNT_LOCKED").length === 0 ? (
+                                    {alerts.length === 0 ? (
                                         <p className="text-center-muted">No active alerts detected.</p>
                                     ) : (
-                                        events
-                                            .filter(e => e.event_type === "SUSPICIOUS_ACTIVITY" || e.event_type === "ACCOUNT_LOCKED")
-                                            .map(alert => (
-                                                <div key={alert.id} className="alert-item">
-                                                    <strong>
-                                                        {alert.username || "Unknown User"} (ID: {alert.user_id || 'N/A'})
-                                                    </strong>
-                                                    triggered {alert.event_type.replace("_", " ")}
-                                                    <div className="alert-meta">
-                                                        Reason: {alert.event_metadata?.reason || "Anomaly detected"}
-                                                        <br />
-                                                        Time: {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true })}
-                                                    </div>
+                                        alerts.map(alert => (
+                                            <div key={alert.id} className="alert-item">
+                                                <strong>
+                                                    {alert.username || "Unknown User"} (ID: {alert.user_id || 'N/A'})
+                                                </strong>
+                                                {' '}triggered {alert.event_type.replace("_", " ")}
+                                                <div className="alert-meta">
+                                                    Reason: {alert.event_metadata?.reason || "Anomaly detected"}
+                                                    <br />
+                                                    Time: {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true })}
                                                 </div>
-                                            ))
+                                            </div>
+                                        ))
                                     )}
                                 </div>
                             </div>
@@ -168,7 +175,7 @@ const SecurityDashboard = () => {
                         <div className="dashboard-card">
                             <div className="table-header-flex">
                                 <h2 style={{ border: 'none', margin: 0, padding: 0 }}> Logs 
-                                {loading && <span style={{fontSize: '0.8rem', color: '#718096', marginLeft: '10px'}}>Updating...</span>}
+                                {tableLoading && <span style={{fontSize: '0.8rem', color: '#718096', marginLeft: '10px'}}>Updating...</span>}
                                  </h2>
 
                                 <select
@@ -196,38 +203,38 @@ const SecurityDashboard = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                    {loading ? (
+                                        {tableLoading ? (
                                             <tr>
                                                 <td colSpan="5" className="text-center-muted">Filtering Logs...</td>
                                             </tr>
-                                        ) : events.length === 0 ? (
+                                        ) : logs.length === 0 ? (
                                             <tr>
                                                 <td colSpan="5" className="text-center-muted">No events found matching your criteria.</td>
                                             </tr>
                                         ) : (
-                                            events.map((event) => (
-                                                <tr key={event.id}>
+                                            logs.map((log) => (
+                                                <tr key={log.id}>
                                                     <td style={{ color: '#718096', fontSize: '0.9rem' }}>
-                                                        {formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}
+                                                        {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
                                                     </td>
                                                     <td>
-                                                        <span className={`badge ${getEventBadgeClass(event.event_type)}`}>
-                                                            {event.event_type.replace("_", " ")}
+                                                        <span className={`badge ${getEventBadgeClass(log.event_type)}`}>
+                                                            {log.event_type.replace("_", " ")}
                                                         </span>
                                                     </td>
                                                     <td style={{ fontWeight: '600', color: '#2d3748' }}>
-                                                        {event.username || `Unknown (ID: ${event.user_id || 'N/A'})`}
+                                                        {log.username || `Unknown (ID: ${log.user_id || 'N/A'})`}
                                                     </td>
                                                     <td style={{ color: '#718096', fontFamily: 'monospace' }}>
-                                                        {event.ip_address || 'N/A'}
-                                                        {event.event_metadata?.location && (
+                                                        {log.ip_address || 'N/A'}
+                                                        {log.event_metadata?.location && (
                                                           <div style={{ fontSize: '0.75rem', color: '#4a5568', marginTop: '4px', fontFamily: 'Inter, sans-serif' }}>
-                                                             📍 {event.event_metadata.location}
-                                                                          </div>
-                                                                     )}
+                                                             📍 {log.event_metadata.location}
+                                                          </div>
+                                                        )}
                                                     </td>
                                                     <td style={{ color: '#718096', fontSize: '0.8rem', maxWidth: '200px' }}>
-                                                        {JSON.stringify(event.event_metadata).replace(/[{}]/g, '').replace(/"/g, '')}
+                                                        {JSON.stringify(log.event_metadata).replace(/[{}]/g, '').replace(/"/g, '')}
                                                     </td>
                                                 </tr>
                                             ))
@@ -247,7 +254,7 @@ const SecurityDashboard = () => {
                                 </button>
                                 <span style={{ color: '#718096', alignSelf: 'center', fontSize: '0.9rem' }}>Page {page + 1}</span>
                                 <button
-                                    disabled={events.length < limit}
+                                    disabled={logs.length < limit}
                                     onClick={() => setPage(p => p + 1)}
                                     className="btn-google"
                                     style={{ width: 'auto', padding: '6px 16px', margin: 0 }}
