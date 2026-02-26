@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Form, UploadFile, File, Request # <-- Added Request
+from fastapi import APIRouter, Depends, HTTPException, status, Form, UploadFile, File, Request, Response, Cookie
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import httpx
@@ -49,7 +49,7 @@ async def get_coord_location(lat: float, lon: float) -> str:
     return None 
 
 @router.post("/login")
-async def login(request: Request, payload: schemas.LoginRequest, db: AsyncSession = Depends(database.get_db)):
+async def login(request: Request,response: Response, payload: schemas.LoginRequest, db: AsyncSession = Depends(database.get_db)):
     client_ip = request.client.host
     location = None
     location_source = "unknown"
@@ -104,12 +104,22 @@ async def login(request: Request, payload: schemas.LoginRequest, db: AsyncSessio
         event_metadata={"location": location, "location_source": location_source} 
     )
 
-    token = dependencies.create_jwt_token(db_user.email, db_user.name)
-    return {"token": token}
+    access_token = dependencies.create_jwt_token(db_user.email, db_user.name)
+    refresh_token = dependencies.create_refresh_token(db_user.email)
+
+    response.set_cookie(
+        key = "refresh_token",
+        value = refresh_token,
+        httponly = True,
+        max_age = 7*24*3600,
+        samesite = "lax",
+        secure = False
+    )
+    return {"token": access_token}
 
 
 @router.post("/google")
-async def google_login(request: Request, payload: schemas.GoogleLoginRequest, db: AsyncSession = Depends(database.get_db)):
+async def google_login(request: Request, response: Response, payload: schemas.GoogleLoginRequest, db: AsyncSession = Depends(database.get_db)):
     client_ip = request.client.host
 
     location = None
@@ -185,6 +195,16 @@ async def google_login(request: Request, payload: schemas.GoogleLoginRequest, db
         event_metadata={"provider": "google", "location": location, "location_source": location_source})
 
     local_token = dependencies.create_jwt_token(email, name)
+    refresh_token = dependencies.create_refresh_token(email)
+
+    response.set_cookie(
+        key = "refresh_token",
+        value = refresh_token,
+        httponly = True,
+        max_age = 7*24*3600,
+        samesite = "lax",
+        secure = False
+    )
     
     return {
         "token": local_token,
@@ -195,6 +215,25 @@ async def google_login(request: Request, payload: schemas.GoogleLoginRequest, db
             "role": db_user.role if hasattr(db_user, 'role') else "user"
         }
     }
+
+@router.post("/refresh")
+async def refresh_access_token(refresh_token: str = Cookie(None), db: AsyncSession = Depends(database.get_db)):
+    """to be called when access token expires"""
+    if not refresh_token:
+        raise HTTPException(sttaus_code=401, detail = "Refresh toekn missing")
+    
+    email = dependencies.verify_refresh_token(refresh_token)
+    if not email:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+    
+    stmt = select(models.User).where(models.User.email == email)
+    result = await db.execute(stmt)
+    db_user = result.scalars().first()
+    
+    if not db_user:
+        raise HTTPException(status_code=401, detail="User not found")
+    new_access_token = dependencies.create_jwt_token(db_user.email, db_user.name)
+    return {"token": new_access_token}
 
 @router.post("/register")
 async def register_user(
@@ -236,3 +275,9 @@ async def register_user(
     await db.commit()
 
     return {"message": "User registered successfully"}
+
+@router.post("/logout")
+async def logout(response: Response):
+    """clears http-only cookie"""
+    response.delete_cookie("refresh_token")
+    return {"message": "Logged out successfully"}

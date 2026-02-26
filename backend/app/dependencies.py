@@ -4,6 +4,7 @@ from sqlalchemy import select
 import jwt
 import datetime
 import bcrypt
+from datetime import datetime, timedelta, timezone
 from .database import get_db
 from .models import User
 from .config import settings
@@ -26,9 +27,30 @@ def create_jwt_token(email: str, name: str):
     payload = {
         "sub": email,
         "name": name,
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1)
+        "exp": datetime.now(timezone.utc) + timedelta(days=1)
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=ALGORITHM)
+
+def create_refresh_token(email: str) -> str:
+    """a 7 day refresh token"""
+    expire = datetime.now(timezone.utc) + timedelta(days = 7)
+    to_encode = {"sub": email, "type": "refresh", "exp": expire}
+
+    encoded_jwt = jwt.encode(
+        to_encode, 
+        settings.secret_key,
+        algorithm = settings.algorithm
+    )
+    return encoded_jwt
+
+def verify_refresh_token(token: str):
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms = [settings.algorithm])
+        if payload.get("type") != "refresh":
+            return None
+        return payload.get("sub")
+    except Exception:
+        return None
 
 def get_current_user(request: Request):
     auth_header = request.headers.get('Authorization')

@@ -6,7 +6,11 @@ from .websocket import security_ws_manager
 
 class SecurityService:
     @staticmethod
-    async def log_event(db: AsyncSession, event_type: EventType, ip_address: str, user_id: int = None, event_metadata: dict = None):
+    async def log_event(db: AsyncSession, 
+                        event_type: EventType, 
+                        ip_address: str, 
+                        user_id: int = None, 
+                        event_metadata: dict = None):
         """Creates a new security log entry asynchronously."""
         if event_metadata is None:
             event_metadata = {}
@@ -55,7 +59,9 @@ class SecurityService:
         return failed_count >= 5
 
     @staticmethod
-    async def check_suspicious_activity(db: AsyncSession, user_id: int, current_ip: str):
+    async def check_suspicious_activity(db: AsyncSession, 
+                                        user_id: int, 
+                                        current_ip: str):
         """Rule: Same user_id logs in from a new IP within 15 minutes of a previous login."""
         fifteen_mins_ago = datetime.now(timezone.utc) - timedelta(minutes=15)
         
@@ -68,7 +74,6 @@ class SecurityService:
         
         result = await db.execute(stmt)
         last_login = result.scalars().first()
-
         # If there is a recent login AND the IP is different, log it as suspicious
         if last_login and last_login.ip_address != current_ip:
             await SecurityService.log_event(

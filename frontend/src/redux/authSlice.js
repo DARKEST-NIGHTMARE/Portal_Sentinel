@@ -54,6 +54,8 @@ const authSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(loginUser.fulfilled, (state, action) => { state.token = action.payload; })
+      .addCase(loginUser.pending, (state) => {state.loading = true; state.error = null; })
+      .addCase(loginUser.rejected, (state) => {state.loading = false; state.error = "Login Falied";})
       .addCase(fetchUser.fulfilled, (state, action) => { state.user = action.payload; })
       .addCase(registerUser.fulfilled, (state) => {state.loading = false;})
       .addCase(googleLogin.fulfilled, (state, action) => {
