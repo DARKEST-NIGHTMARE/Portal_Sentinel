@@ -13,6 +13,24 @@ class User(Base):
     provider = Column(String, default="local")
     password_hash = Column(String, nullable=True)
     role = Column(String, default="user")
+    
+    sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
+
+class UserSession(Base):
+    __tablename__ = "user_sessions"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    
+    refresh_token = Column(String, unique=True, index=True, nullable=False)
+    device_info = Column(String, nullable=True) # e.g., "Windows PC - Chrome"
+    ip_address = Column(String, nullable=True)
+    location = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_active = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    user = relationship("User", back_populates="sessions")
 
 class Employee(Base):
     __tablename__ = "employees"

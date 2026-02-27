@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, desc
 from typing import List
 
 from .. import models, schemas, database, dependencies
@@ -47,5 +47,83 @@ async def change_user_role(
     await db.commit()
     await db.refresh(user_to_update)
     return user_to_update
+
+@router.get("/me/sessions", response_model=List[schemas.UserSessionOut])
+async def get_my_sessions(
+    current_user: dict = Depends(dependencies.get_current_user),
+    db: AsyncSession = Depends(database.get_db)
+):
+    email = current_user.get("sub")
+    user_stmt = select(models.User).where(models.User.email == email)
+    user_res = await db.execute(user_stmt)
+    db_user = user_res.scalars().first()
     
-    # return {"message": f"User {user_to_update.email} updated to {request.role}"}
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    stmt = select(models.UserSession).where(
+        models.UserSession.user_id == db_user.id,
+        models.UserSession.is_active == True
+    ).order_by(desc(models.UserSession.last_active))
+    
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+@router.delete("/me/sessions/{session_id}")
+async def revoke_my_session(
+    session_id: int,
+    current_user: dict = Depends(dependencies.get_current_user),
+    db: AsyncSession = Depends(database.get_db)
+):
+    email = current_user.get("sub")
+    user_stmt = select(models.User).where(models.User.email == email)
+    user_res = await db.execute(user_stmt)
+    db_user = user_res.scalars().first()
+    
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    stmt = select(models.UserSession).where(
+        models.UserSession.id == session_id,
+        models.UserSession.user_id == db_user.id
+    )
+    result = await db.execute(stmt)
+    session = result.scalars().first()
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found or not owned by user")
+        
+    session.is_active = False
+    await db.commit()
+    return {"message": "Session revoked successfully"}
+
+@router.get("/me/security-events", response_model=List[schemas.SecurityEventOut])
+async def get_my_security_events(
+    skip: int = 0,
+    limit: int = 20,
+    event_type: str = None,
+    current_user: dict = Depends(dependencies.get_current_user),
+    db: AsyncSession = Depends(database.get_db)
+):
+    email = current_user.get("sub")
+    user_stmt = select(models.User).where(models.User.email == email)
+    user_res = await db.execute(user_stmt)
+    db_user = user_res.scalars().first()
+    
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    stmt = select(models.SecurityEvent).where(models.SecurityEvent.user_id == db_user.id)
+    
+    if event_type:
+        stmt = stmt.where(models.SecurityEvent.event_type == event_type)
+        
+    stmt = stmt.order_by(desc(models.SecurityEvent.created_at)).offset(skip).limit(limit)
+    result = await db.execute(stmt)
+    events = result.scalars().all()
+    
+    # Attach username for schema compatibility
+    for event in events:
+        event.username = db_user.name
+        
+    return events

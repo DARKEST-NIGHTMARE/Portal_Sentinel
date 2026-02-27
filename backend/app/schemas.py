@@ -51,3 +51,19 @@ class UserActivityOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class UserSessionOut(BaseModel):
+    id: int
+    user_id: int
+    refresh_token: str
+    device_info: Optional[str] = None
+    ip_address: Optional[str] = None
+    location: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+    last_active: datetime
+    user_name: Optional[str] = None
+    user_email: Optional[str] = None
+
+    class Config:
+        from_attributes = True

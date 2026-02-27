@@ -127,6 +127,42 @@ async def get_active_users(
     activity_list.sort(key=lambda x: x["last_seen"], reverse=True)
     return activity_list
 
+@router.get("/sessions", response_model=List[schemas.UserSessionOut])
+async def get_all_sessions(
+    db: AsyncSession = Depends(database.get_db),
+    admin = Depends(require_admin)
+):
+    stmt = select(models.UserSession).where(models.UserSession.is_active == True).order_by(desc(models.UserSession.last_active))
+    result = await db.execute(stmt)
+    sessions = result.scalars().all()
+    
+    for session in sessions:
+        user_stmt = select(models.User).where(models.User.id == session.user_id)
+        user_result = await db.execute(user_stmt)
+        user = user_result.scalars().first()
+        if user:
+            session.user_name = user.name
+            session.user_email = user.email
+
+    return sessions
+
+@router.delete("/sessions/{session_id}")
+async def revoke_user_session(
+    session_id: int,
+    db: AsyncSession = Depends(database.get_db),
+    admin = Depends(require_admin)
+):
+    stmt = select(models.UserSession).where(models.UserSession.id == session_id)
+    result = await db.execute(stmt)
+    session = result.scalars().first()
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+        
+    session.is_active = False
+    await db.commit()
+    return {"message": "Session revoked successfully"}
+
 @router.websocket("/ws")
 async def websocket_security_endpoint(websocket: WebSocket):
     await security_ws_manager.connect(websocket)

@@ -5,6 +5,7 @@ import httpx
 import uuid
 import os
 import shutil
+from datetime import datetime, timezone
 from .. import models, schemas, database, dependencies
 from ..config import settings
 from ..services.security_service import SecurityService 
@@ -13,19 +14,23 @@ from ..models import EventType
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
-async def get_ip_location(ip: str) -> str:
+async def get_ip_location_data(ip: str) -> dict:
     if ip in ["127.0.0.1", "::1", "localhost", "0.0.0.0"]:
-        return "Localhost (Testing)"
+        return {"location": "Localhost (Testing)", "lat": 23.2156, "lon": 72.6369}
     
     try:
         async with httpx.AsyncClient() as client:
-            res = await client.get(f"http://ip-api.com/json/{ip}?fields=city,country,status")
+            res = await client.get(f"http://ip-api.com/json/{ip}?fields=city,country,lat,lon,status")
             data = res.json()
             if data.get("status") == "success":
-                return f"{data.get('city')}, {data.get('country')}"
+                return {
+                    "location": f"{data.get('city')}, {data.get('country')}",
+                    "lat": data.get("lat"),
+                    "lon": data.get("lon")
+                }
     except Exception as e:
         print(f"Location lookup failed: {e}")
-    return "Unknown Location"
+    return {"location": "Unknown Location", "lat": None, "lon": None}
 
 async def get_coord_location(lat: float, lon: float) -> str:
     try:
@@ -51,18 +56,23 @@ async def get_coord_location(lat: float, lon: float) -> str:
 @router.post("/login")
 async def login(request: Request,response: Response, payload: schemas.LoginRequest, db: AsyncSession = Depends(database.get_db)):
     client_ip = request.client.host
-    location = None
-    location_source = "unknown"
+    location_str = "Unknown"
+    location_source = "Unknown"
+    lat = payload.latitude
+    lon = payload.longitude
 
-    if payload.latitude and payload.longitude:
-        location = await get_coord_location(payload.latitude, payload.longitude)
-        if location:
-            location_source = "GPS(precise)"
-
-    if not location:
-        location = await get_ip_location(client_ip)
-        location_source = "IP(approximate)"
-    # location = await get_ip_location(client_ip)
+    # 1. Check if we have exact GPS from the browser
+    if lat and lon:
+        location_str = await get_coord_location(lat, lon)
+        location_source = "GPS (Precise)"
+        
+    # 2. If no GPS, fallback to IP Geolocation
+    if not location_str or location_str == "Unknown":
+        ip_data = await get_ip_location_data(client_ip)
+        location_str = ip_data["location"]
+        lat = ip_data["lat"]
+        lon = ip_data["lon"]
+        location_source = "IP (Approximate)"
 
     if await SecurityService.is_ip_locked_out(db, client_ip):
 
@@ -78,7 +88,11 @@ async def login(request: Request,response: Response, payload: schemas.LoginReque
             user_id=target_user.id if target_user else None, 
             event_metadata={
                 "reason": "Too many failed attempts",
-                "targeted_email": payload.username
+                "targeted_email": payload.username,
+                "location": location_str, 
+                "location_source": location_source,
+                "lat": lat,
+                "lon": lon
             }
         )
         raise HTTPException(status_code=429, detail="Too many failed login attempts. Please try again in 5 minutes.")
@@ -91,7 +105,13 @@ async def login(request: Request,response: Response, payload: schemas.LoginReque
         await SecurityService.log_event(
             db, EventType.FAILED_LOGIN, client_ip, 
             user_id=db_user.id if db_user else None, 
-            event_metadata={"attempted_email": payload.username}
+            event_metadata={
+                "attempted_email": payload.username,
+                "location": location_str, 
+                "location_source": location_source,
+                "lat": lat,
+                "lon": lon
+            }
         )
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
@@ -101,11 +121,30 @@ async def login(request: Request,response: Response, payload: schemas.LoginReque
         EventType.ACTIVE_SESSION, 
         client_ip, 
         user_id=db_user.id,
-        event_metadata={"location": location, "location_source": location_source} 
+        event_metadata={
+            "location": location_str, 
+            "location_source": location_source,
+            "lat": lat,
+            "lon": lon
+        } 
     )
 
-    access_token = dependencies.create_jwt_token(db_user.email, db_user.name)
     refresh_token = dependencies.create_refresh_token(db_user.email)
+    
+    device_info = request.headers.get("User-Agent", "Unknown Device")
+
+    new_session = models.UserSession(
+        user_id=db_user.id,
+        refresh_token=refresh_token,
+        device_info=device_info,
+        ip_address=client_ip,
+        location=location_str
+    )
+    db.add(new_session)
+    await db.commit()
+    await db.refresh(new_session)
+
+    access_token = dependencies.create_jwt_token(db_user.email, db_user.name, new_session.id)
 
     response.set_cookie(
         key = "refresh_token",
@@ -122,19 +161,23 @@ async def login(request: Request,response: Response, payload: schemas.LoginReque
 async def google_login(request: Request, response: Response, payload: schemas.GoogleLoginRequest, db: AsyncSession = Depends(database.get_db)):
     client_ip = request.client.host
 
-    location = None
-    location_source = "unknown"
+    location_str = "Unknown"
+    location_source = "Unknown"
+    lat = payload.latitude
+    lon = payload.longitude
 
-    if payload.latitude and payload.longitude:
-        location = await get_coord_location(payload.latitude, payload.longitude)
-        if location:
-            location_source = "GPS(precise)"
-
-    if not location:
-        location = await get_ip_location(client_ip)
-        location_source = "IP(approximate)"
-
-    # location = await get_ip_location(client_ip)
+    # 1. Check if we have exact GPS from the browser
+    if lat and lon:
+        location_str = await get_coord_location(lat, lon)
+        location_source = "GPS (Precise)"
+        
+    # 2. If no GPS, fallback to IP Geolocation
+    if not location_str or location_str == "Unknown":
+        ip_data = await get_ip_location_data(client_ip)
+        location_str = ip_data["location"]
+        lat = ip_data["lat"]
+        lon = ip_data["lon"]
+        location_source = "IP (Approximate)"
     
     async with httpx.AsyncClient() as client:
         token_url = "https://oauth2.googleapis.com/token"
@@ -192,10 +235,31 @@ async def google_login(request: Request, response: Response, payload: schemas.Go
         EventType.ACTIVE_SESSION, 
         client_ip, 
         user_id=db_user.id, 
-        event_metadata={"provider": "google", "location": location, "location_source": location_source})
+        event_metadata={
+            "provider": "google", 
+            "location": location_str, 
+            "location_source": location_source,
+            "lat": lat,
+            "lon": lon
+        }
+    )
 
-    local_token = dependencies.create_jwt_token(email, name)
     refresh_token = dependencies.create_refresh_token(email)
+    
+    device_info = request.headers.get("User-Agent", "Unknown Device")
+
+    new_session = models.UserSession(
+        user_id=db_user.id,
+        refresh_token=refresh_token,
+        device_info=device_info,
+        ip_address=client_ip,
+        location=location_str
+    )
+    db.add(new_session)
+    await db.commit()
+    await db.refresh(new_session)
+
+    local_token = dependencies.create_jwt_token(email, name, new_session.id)
 
     response.set_cookie(
         key = "refresh_token",
@@ -220,7 +284,19 @@ async def google_login(request: Request, response: Response, payload: schemas.Go
 async def refresh_access_token(refresh_token: str = Cookie(None), db: AsyncSession = Depends(database.get_db)):
     """to be called when access token expires"""
     if not refresh_token:
-        raise HTTPException(sttaus_code=401, detail = "Refresh toekn missing")
+        raise HTTPException(status_code=401, detail = "Refresh token missing")
+    
+    # Check if session is valid in DB
+    session_stmt = select(models.UserSession).where(
+        models.UserSession.refresh_token == refresh_token,
+        models.UserSession.is_active == True
+    )
+    session_res = await db.execute(session_stmt)
+    active_session = session_res.scalars().first()
+    
+    if not active_session:
+        # Invalid or revoked session
+        raise HTTPException(status_code=401, detail="Session expired or revoked")
     
     email = dependencies.verify_refresh_token(refresh_token)
     if not email:
@@ -232,7 +308,12 @@ async def refresh_access_token(refresh_token: str = Cookie(None), db: AsyncSessi
     
     if not db_user:
         raise HTTPException(status_code=401, detail="User not found")
-    new_access_token = dependencies.create_jwt_token(db_user.email, db_user.name)
+        
+    # Update last active time
+    active_session.last_active = datetime.now(timezone.utc)
+    await db.commit()
+    
+    new_access_token = dependencies.create_jwt_token(db_user.email, db_user.name, active_session.id)
     return {"token": new_access_token}
 
 @router.post("/register")
@@ -277,7 +358,16 @@ async def register_user(
     return {"message": "User registered successfully"}
 
 @router.post("/logout")
-async def logout(response: Response):
-    """clears http-only cookie"""
+async def logout(refresh_token: str = Cookie(None), response: Response = None, db: AsyncSession = Depends(database.get_db)):
+    """clears http-only cookie and revokes session"""
+    if refresh_token:
+        session_stmt = select(models.UserSession).where(models.UserSession.refresh_token == refresh_token)
+        session_res = await db.execute(session_stmt)
+        active_session = session_res.scalars().first()
+        
+        if active_session:
+            active_session.is_active = False
+            await db.commit()
+            
     response.delete_cookie("refresh_token")
     return {"message": "Logged out successfully"}
