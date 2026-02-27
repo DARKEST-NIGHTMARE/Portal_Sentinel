@@ -5,12 +5,12 @@ const BACKEND_URL = process.env.REACT_APP_API_URL;
 
 const Navbar = ({ user, onLogout, activePage }) => {
     const avatarSrc = (u) => {
-    if (!u.avatar_url) return `https://ui-avatars.com/api/?name=${u.name}`;
-    return u.avatar_url.startsWith("http") 
-      ? u.avatar_url 
-      : `${BACKEND_URL}${u.avatar_url}`; 
-  };
-//   console.log(avatarSrc(user));
+        if (!u.avatar_url) return `https://ui-avatars.com/api/?name=${u.name}`;
+        return u.avatar_url.startsWith("http")
+            ? u.avatar_url
+            : `${BACKEND_URL}${u.avatar_url}`;
+    };
+    //   console.log(avatarSrc(user));
 
     return (
         <nav className="navbar">
@@ -22,15 +22,13 @@ const Navbar = ({ user, onLogout, activePage }) => {
                         Employees
                     </Link>
                     {user.role === 'admin' && (
-                        <>
                         <Link to="/users" className={activePage === 'users' ? 'active-link' : ''}>
                             Users
                         </Link>
-                        <Link to="/admin/security" className={activePage === 'security' ? 'active-link' : ''}>
-                                Security
-                            </Link>
-                            </>
                     )}
+                    <Link to="/security" className={activePage === 'security' ? 'active-link' : ''}>
+                        Security
+                    </Link>
                 </div>
             </div>
 

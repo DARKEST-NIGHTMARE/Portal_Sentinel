@@ -44,7 +44,14 @@ function App() {
                 </PrivateRoute>
               }
             />
-            <Route path="/admin/security" element={<SecurityDashboard />}/>
+            <Route
+              path="/security"
+              element={
+                <PrivateRoute>
+                  <SecurityDashboard />
+                </PrivateRoute>
+              }
+            />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
