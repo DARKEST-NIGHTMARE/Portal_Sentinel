@@ -4,10 +4,11 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .database import engine, Base, get_db
-from .routers import auth, employees, users, security
-from . import models, dependencies
-from .config import settings
+from .core.database import engine, Base, get_db
+from .api import auth, employees, users, security
+from . import models
+from .core import dependencies
+from .core.config import settings
 
 app = FastAPI()
 

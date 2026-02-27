@@ -6,7 +6,7 @@ import datetime
 import bcrypt
 from datetime import datetime, timedelta, timezone
 from .database import get_db
-from .models import User, UserSession
+from ..models import User, UserSession
 from .config import settings
 
 JWT_SECRET = settings.secret_key

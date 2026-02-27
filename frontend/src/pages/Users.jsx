@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllUsers, updateUserRole } from "../redux/usersListSlice";
 import { logout } from "../redux/authSlice";
-import Navbar from "../components/Navbar";
+import Navbar from "../components/layout/Navbar";
 
 const BACKEND_URL = process.env.REACT_APP_API_URL;
 

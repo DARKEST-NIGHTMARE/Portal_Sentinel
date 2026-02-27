@@ -5,7 +5,8 @@ from typing import List, Optional
 from datetime import datetime, timedelta, timezone
 from fastapi.security import HTTPBearer
 
-from .. import models, schemas, database, dependencies
+from .. import models, schemas
+from ..core import database, dependencies
 from ..services.websocket import security_ws_manager
 
 token_auth_scheme = HTTPBearer()

@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc
 from typing import List
 
-from .. import models, schemas, database, dependencies
+from .. import models, schemas
+from ..core import database, dependencies
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
 
