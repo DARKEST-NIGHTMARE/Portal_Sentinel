@@ -42,7 +42,7 @@ api.interceptors.response.use(
 
         const newToken = res.data.token;
         localStorage.setItem("token", newToken);
-        originalRequest.headers.Authorization = `Bearer${newToken}`;
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
       }
       catch (refreshError) {

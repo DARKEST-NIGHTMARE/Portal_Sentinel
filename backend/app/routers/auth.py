@@ -9,7 +9,10 @@ from datetime import datetime, timezone
 from .. import models, schemas, database, dependencies
 from ..config import settings
 from ..services.security_service import SecurityService 
-from ..models import EventType 
+from ..models import EventType
+from ..logger import get_logger
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -29,7 +32,7 @@ async def get_ip_location_data(ip: str) -> dict:
                     "lon": data.get("lon")
                 }
     except Exception as e:
-        print(f"Location lookup failed: {e}")
+        logger.warning("location_lookup_failed", extra={"ip": ip, "error": str(e)})
     return {"location": "Unknown Location", "lat": None, "lon": None}
 
 async def get_coord_location(lat: float, lon: float) -> str:
@@ -49,7 +52,7 @@ async def get_coord_location(lat: float, lon: float) -> str:
                 if city and country:
                     return f"{city}, {country}"
     except Exception as e:
-        print(f"Coordinate lookup failed: {e}")
+        logger.warning("coord_lookup_failed", extra={"lat": lat, "lon": lon, "error": str(e)})
         
     return None 
 
@@ -154,7 +157,16 @@ async def login(request: Request,response: Response, payload: schemas.LoginReque
         samesite = "lax",
         secure = False
     )
-    return {"token": access_token}
+    
+    return {
+        "token": access_token,
+        "user": {
+            "name": db_user.name,
+            "email": db_user.email,
+            "avatar_url": db_user.avatar_url,
+            "role": db_user.role if hasattr(db_user, 'role') else "user"
+        }
+    }
 
 
 @router.post("/google")
@@ -192,7 +204,7 @@ async def google_login(request: Request, response: Response, payload: schemas.Go
         token_res = await client.post(token_url, data=token_data)
         
         if token_res.status_code != 200:
-            print("Google Error:", token_res.text)
+            logger.error("google_token_exchange_failed", extra={"response": token_res.text})
             raise HTTPException(status_code=400, detail="Invalid Google Code")
             
         access_token = token_res.json().get("access_token")
@@ -222,12 +234,12 @@ async def google_login(request: Request, response: Response, payload: schemas.Go
         await db.commit()     
         await db.refresh(new_user) 
         db_user = new_user 
-        print(f"Created New User: {email}")
+        logger.info("user_registered", extra={"email": email, "provider": "google"})
     else:
         db_user.name = name
         db_user.avatar_url = avatar
         await db.commit()
-        print(f"Welcome back: {email}")
+        logger.info("user_login_google", extra={"email": email})
 
     await SecurityService.check_suspicious_activity(db, db_user.id, client_ip)
     await SecurityService.log_event(
