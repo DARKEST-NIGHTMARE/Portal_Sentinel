@@ -1,14 +1,16 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
+import buttonStyles from "../components/common/Button.module.css";
+
 const NotFound = () => {
   return (
-    <div style={{ 
-      display: "flex", 
-      flexDirection: "column", 
-      alignItems: "center", 
-      justifyContent: "center", 
-      height: "100vh", 
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      height: "100vh",
       color: "#2d3748",
       textAlign: "center"
     }}>
@@ -17,8 +19,8 @@ const NotFound = () => {
       <p style={{ color: "#718096", marginBottom: "30px" }}>
         Oops! The page you are looking for does not exist.
       </p>
-      
-      <Link to="/dashboard" className="btn btn-jwt" style={{ textDecoration: "none" }}>
+
+      <Link to="/dashboard" className={`${buttonStyles.btn} ${buttonStyles.btnJwt}`} style={{ textDecoration: "none", width: "auto", padding: "12px 24px" }}>
         Go Back Home
       </Link>
     </div>

@@ -1,30 +1,31 @@
 import React from 'react';
+import formStyles from './common/Form.module.css';
 
-const InputGroup = ({ 
-  label, 
-  type = 'text', 
-  name, 
-  value, 
-  onChange, 
-  placeholder, 
+const InputGroup = ({
+  label,
+  type = 'text',
+  name,
+  value,
+  onChange,
+  placeholder,
   required = false,
-  accept 
+  accept
 }) => {
   return (
     <div className="input-group" style={{ marginBottom: '1rem', textAlign: 'left' }}>
       {label && (
-        <label style={{ 
-          fontSize: "0.85rem", 
-          color: "#718096", 
-          marginBottom: "5px", 
-          display: "block", 
-          fontWeight: "600" 
+        <label style={{
+          fontSize: "0.85rem",
+          color: "#718096",
+          marginBottom: "5px",
+          display: "block",
+          fontWeight: "600"
         }}>
           {label}
         </label>
       )}
       <input
-        className="input-field"
+        className={formStyles.inputField}
         type={type}
         name={name}
         value={value}

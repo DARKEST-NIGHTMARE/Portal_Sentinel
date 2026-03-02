@@ -1,0 +1,136 @@
+.btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    margin-bottom: 1rem;
+    transition: transform 0.1s;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btnGoogle {
+    background: white;
+    color: #4a5568;
+    border: 1px solid #e2e8f0;
+}
+
+.btnJwt {
+    background: linear-gradient(to right, #667eea, #764ba2);
+    color: white;
+}
+
+.btnAdd {
+    background: #48bb78;
+    color: white;
+    width: auto;
+    padding: 8px 16px;
+}
+
+.btnDelete {
+    background-color: #fff5f5;
+    color: #c53030;
+    border: 1px solid #feb2b2;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btnDelete:hover {
+    background-color: #c53030;
+    color: white;
+    border-color: #9b2c2c;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(197, 48, 48, 0.2);
+}
+
+.badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.badgeAdmin {
+    background: #e9d8fd;
+    color: #6b46c1;
+}
+
+.badgeUser {
+    background: #bee3f8;
+    color: #2c5282;
+}
+
+.btnPromote {
+    background-color: #f0fff4;
+    color: #2f855a;
+    border: 1px solid #9ae6b4;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btnPromote:hover {
+    background-color: #2f855a;
+    color: white;
+    border-color: #22543d;
+}
+
+.btnDemote {
+    background-color: #fffaf0;
+    color: #c05621;
+    border: 1px solid #fbd38d;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btnDemote:hover {
+    background-color: #c05621;
+    color: white;
+    border-color: #9c4221;
+}
+
+.btnDemote:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(100%);
+}
+
+.badgeFailed {
+    background: #fed7d7;
+    color: #9b2c2c;
+}
+
+.badgeSuspicious {
+    background: #feebc8;
+    color: #9c4221;
+}
+
+.badgeActive {
+    background: #c6f6d5;
+    color: #22543d;
+}
+
+.badgeLocked {
+    background: #e9d8fd;
+    color: #553c9a;
+}
+
+.badgeDefault {
+    background: #edf2f7;
+    color: #4a5568;
+}

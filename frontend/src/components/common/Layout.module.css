@@ -1,0 +1,17 @@
+.glassCard {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+}
+
+.loginCard {
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+}
+
+.tableWrapper {
+    overflow-x: auto;
+}

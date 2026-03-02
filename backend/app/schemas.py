@@ -1,7 +1,7 @@
 from pydantic import BaseModel ,EmailStr
 from typing import Optional, Dict, Any
 from datetime import datetime
-from .models import EventType
+from .models import EventType, UserRole
 
 class GoogleLoginRequest(BaseModel):
     code: str
@@ -21,13 +21,13 @@ class EmployeeCreate(BaseModel):
     salary: int
 
 class RoleChangeRequest(BaseModel):
-    role: str
+    role: UserRole
 
 class UserOut(BaseModel):
     id: int
     name: str
     email: EmailStr
-    role: str
+    role: UserRole
     avatar_url: Optional[str] = None  
 
 
