@@ -18,10 +18,10 @@ function App() {
   const { token, user } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    if (token && !user) {
+    if (token) {
       dispatch(fetchUser());
     }
-  }, [token, user, dispatch]);
+  }, [token, dispatch]);
 
   return (
     <div className={`app-container ${user ? "logged-in" : ""}`}>

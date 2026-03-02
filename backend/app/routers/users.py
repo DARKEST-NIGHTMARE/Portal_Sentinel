@@ -67,6 +67,19 @@ async def change_user_role(
     user_to_update.role = request.role
     await db.commit()
     await db.refresh(user_to_update)
+
+    # Invalidate all active sessions for the user whose role changed.
+    # This forces them to re-login and get a fresh token reflecting the new role.
+    sessions_stmt = select(models.UserSession).where(
+        models.UserSession.user_id == user_to_update.id,
+        models.UserSession.is_active == True
+    )
+    sessions_result = await db.execute(sessions_stmt)
+    active_sessions = sessions_result.scalars().all()
+    for session in active_sessions:
+        session.is_active = False
+    await db.commit()
+
     return user_to_update
 
 @router.get("/me/sessions", response_model=List[schemas.UserSessionOut])
