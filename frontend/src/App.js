@@ -6,6 +6,7 @@ import "./assets/App.css";
 import PrivateRoute from "./utils/PrivateRoute";
 import AuthCallback from "./pages/AuthCallback";
 import SecurityDashboard from "./pages/SecurityDashboard";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const Login = React.lazy(() => import("./pages/Login"));
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
@@ -25,37 +26,18 @@ function App() {
   return (
     <div className={`app-container ${user ? "logged-in" : ""}`}>
       <Router>
-        <React.Suspense fallback={<div>Loading...</div>}>
-          <Routes>
-            <Route path="/" element={!user ? <Login /> : <Navigate to="/dashboard" />} />
-            <Route
-              path="/dashboard"
-              element={
-                <PrivateRoute>
-                  <Dashboard />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/users"
-              element={
-                <PrivateRoute>
-                  <Users />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/security"
-              element={
-                <PrivateRoute>
-                  <SecurityDashboard />
-                </PrivateRoute>
-              }
-            />
-            <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </React.Suspense>
+        <ErrorBoundary>
+          <React.Suspense fallback={<div>Loading...</div>}>
+            <Routes>
+              <Route path="/" element={!user ? <Login /> : <Navigate to="/dashboard" />} />
+              <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+              <Route path="/users" element={<PrivateRoute><Users /></PrivateRoute>} />
+              <Route path="/security" element={<PrivateRoute><SecurityDashboard /></PrivateRoute>} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </React.Suspense>
+        </ErrorBoundary>
       </Router>
     </div>
   );
