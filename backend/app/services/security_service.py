@@ -3,6 +3,9 @@ from sqlalchemy import select, func
 from datetime import datetime, timedelta, timezone
 from ..models import SecurityEvent, EventType
 from .websocket import security_ws_manager
+from ..logger import get_logger
+
+logger = get_logger(__name__)
 
 class SecurityService:
     @staticmethod
@@ -39,8 +42,7 @@ class SecurityService:
             await security_ws_manager.broadcast(event_payload)
         
         except Exception as e:
-            print(f"Failed to broadcast security event: {e}")
-            pass
+            logger.warning("ws_broadcast_failed", extra={"error": str(e)})
         return new_event
 
     @staticmethod

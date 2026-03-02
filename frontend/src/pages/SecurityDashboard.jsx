@@ -6,10 +6,14 @@ import {
 } from "recharts";
 
 import { securityApi } from "../services/securityApi";
-import { logout } from "../redux/authSlice";
+import { logoutUser } from "../redux/authSlice";
 import Navbar from "../components/Navbar";
 import SecurityMap from "../components/SecurityMap";
 import { useNavigate } from "react-router-dom";
+import buttonStyles from "../components/common/Button.module.css";
+import layoutStyles from "../components/common/Layout.module.css";
+import employeeTableStyles from "../components/EmployeeTable.module.css";
+import styles from "./SecurityDashboard.module.css";
 
 const SecurityDashboard = () => {
     const dispatch = useDispatch();
@@ -30,14 +34,14 @@ const SecurityDashboard = () => {
     const limit = 10;
     const navigate = useNavigate();
     const handleLogout = () => {
-        dispatch(logout());
+        dispatch(logoutUser());
         navigate("/");
     }
 
     useEffect(() => {
         const fetchStaticWidgets = async () => {
             try {
-                if (user?.role === "admin") {
+                if (user?.role === "ADMIN") {
                     const usersData = await securityApi.getActiveUsers(7);
                     setActiveUsers(usersData);
 
@@ -71,7 +75,7 @@ const SecurityDashboard = () => {
             setError(null);
             try {
                 let logsData;
-                if (user?.role === "admin") {
+                if (user?.role === "ADMIN") {
                     if (eventTypeFilter === "ACTIVE_USER_SESSION") {
                         logsData = await securityApi.getAllSessions();
                         // mock log structure so table code works
@@ -137,11 +141,11 @@ const SecurityDashboard = () => {
 
     const getEventBadgeClass = (type) => {
         switch (type) {
-            case "FAILED_LOGIN": return "badge-failed";
-            case "SUSPICIOUS_ACTIVITY": return "badge-suspicious";
-            case "ACCOUNT_LOCKED": return "badge-locked";
-            case "ACTIVE_SESSION": return "badge-active";
-            default: return "badge-default";
+            case "FAILED_LOGIN": return buttonStyles.badgeFailed;
+            case "SUSPICIOUS_ACTIVITY": return buttonStyles.badgeSuspicious;
+            case "ACCOUNT_LOCKED": return buttonStyles.badgeLocked;
+            case "ACTIVE_SESSION": return buttonStyles.badgeActive;
+            default: return buttonStyles.badgeDefault;
         }
     };
 
@@ -175,34 +179,34 @@ const SecurityDashboard = () => {
     }
 
     return (
-        <div className="dashboard-container">
+        <div className={styles.dashboardContainer}>
             <Navbar user={user} onLogout={handleLogout} activePage="security" />
 
-            <div className="glass-card">
-                <div className="security-header">
+            <div className={layoutStyles.glassCard}>
+                <div className={styles.securityHeader}>
                     <h1>Security Center</h1>
                 </div>
 
                 {error ? (
-                    <div className="text-center-muted" style={{ color: '#e53e3e' }}>Error: {error}</div>
+                    <div className={styles.textCenterMuted} style={{ color: '#e53e3e' }}>Error: {error}</div>
                 ) : (
                     <>
-                        <div className="security-grid">
-                            {user?.role === "admin" ? (
+                        <div className={styles.securityGrid}>
+                            {user?.role === "ADMIN" ? (
                                 <>
-                                    <div className="dashboard-card">
+                                    <div className={styles.dashboardCard}>
                                         <h2 style={{ color: '#c53030' }}> Alerts</h2>
-                                        <div className="alert-list">
+                                        <div className={styles.alertList}>
                                             {alerts.length === 0 ? (
-                                                <p className="text-center-muted">No active alerts detected.</p>
+                                                <p className={styles.textCenterMuted}>No active alerts detected.</p>
                                             ) : (
                                                 alerts.map(alert => (
-                                                    <div key={alert.id} className="alert-item">
+                                                    <div key={alert.id} className={styles.alertItem}>
                                                         <strong>
                                                             {alert.username || "Unknown User"} (ID: {alert.user_id || 'N/A'})
                                                         </strong>
                                                         {' '}triggered {alert.event_type.replace("_", " ")}
-                                                        <div className="alert-meta">
+                                                        <div className={styles.alertMeta}>
                                                             Reason: {alert.event_metadata?.reason || "Anomaly detected"}
                                                             <br />
                                                             Time: {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true })}
@@ -213,11 +217,11 @@ const SecurityDashboard = () => {
                                         </div>
                                     </div>
 
-                                    <div className="dashboard-card">
+                                    <div className={styles.dashboardCard}>
                                         <h2>Recent User Logins (7 Days)</h2>
                                         <div style={{ width: '100%', height: '250px', minWidth: 0 }}>
                                             {activeUsers.length === 0 ? (
-                                                <div className="text-center-muted">No activity data available</div>
+                                                <div className={styles.textCenterMuted}>No activity data available</div>
                                             ) : (
                                                 <ResponsiveContainer width="99%" height="100%">
                                                     <BarChart data={activeUsers.slice(0, 5)} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -234,10 +238,10 @@ const SecurityDashboard = () => {
                                 </>
                             ) : (
                                 <>
-                                    <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
+                                    <div className={styles.dashboardCard} style={{ gridColumn: '1 / -1' }}>
                                         <h2>Your Active Devices</h2>
-                                        <div className="table-wrapper">
-                                            <table className="emp-table">
+                                        <div className={layoutStyles.tableWrapper}>
+                                            <table className={employeeTableStyles.empTable}>
                                                 <thead>
                                                     <tr>
                                                         <th>Device</th>
@@ -248,7 +252,7 @@ const SecurityDashboard = () => {
                                                 </thead>
                                                 <tbody>
                                                     {mySessions.length === 0 ? (
-                                                        <tr><td colSpan="4" className="text-center-muted">No active sessions found.</td></tr>
+                                                        <tr><td colSpan="4" className={styles.textCenterMuted}>No active sessions found.</td></tr>
                                                     ) : (
                                                         mySessions.map((session) => (
                                                             <tr key={session.id}>
@@ -267,7 +271,7 @@ const SecurityDashboard = () => {
                                                                 <td>
                                                                     <button
                                                                         onClick={() => handleRevokeSession(session.id)}
-                                                                        className="btn-delete"
+                                                                        className={buttonStyles.btnDelete}
                                                                     >
                                                                         Revoke Session
                                                                     </button>
@@ -282,7 +286,7 @@ const SecurityDashboard = () => {
                                 </>
                             )}
 
-                            <div className="dashboard-card" style={{ gridColumn: user?.role === 'admin' ? 'auto' : '1 / -1' }}>
+                            <div className={styles.dashboardCard} style={{ gridColumn: user?.role === 'ADMIN' ? 'auto' : '1 / -1' }}>
                                 <h2>Live Security Map</h2>
                                 <div style={{ width: '100%', height: '250px', minWidth: 0, position: 'relative' }}>
                                     <SecurityMap events={logs} />
@@ -290,22 +294,22 @@ const SecurityDashboard = () => {
                             </div>
                         </div>
 
-                        <div className="dashboard-card">
-                            <div className="table-header-flex">
+                        <div className={styles.dashboardCard}>
+                            <div className={styles.tableHeaderFlex}>
                                 <h2 style={{ border: 'none', margin: 0, padding: 0 }}>
-                                    {user?.role === "admin" ? "All Logs" : "Your Logs"}
+                                    {user?.role === "ADMIN" ? "All Logs" : "Your Logs"}
                                     {tableLoading && <span style={{ fontSize: '0.8rem', color: '#718096', marginLeft: '10px' }}>Updating...</span>}
                                 </h2>
 
                                 <select
-                                    className="filter-select"
+                                    className={styles.filterSelect}
                                     value={eventTypeFilter}
                                     onChange={(e) => { setEventTypeFilter(e.target.value); setPage(0); }}
                                 >
                                     <option value="">All Events</option>
                                     <option value="FAILED_LOGIN">Failed Logins</option>
                                     <option value="ACTIVE_SESSION">Successful Logins</option>
-                                    {user?.role === "admin" && (
+                                    {user?.role === "ADMIN" && (
                                         <option value="ACTIVE_USER_SESSION">Active User Sessions</option>
                                     )}
                                     <option value="SUSPICIOUS_ACTIVITY">Suspicious Activity</option>
@@ -313,26 +317,26 @@ const SecurityDashboard = () => {
                                 </select>
                             </div>
 
-                            <div className="table-wrapper">
-                                <table className="emp-table">
+                            <div className={layoutStyles.tableWrapper}>
+                                <table className={employeeTableStyles.empTable}>
                                     <thead>
                                         <tr>
                                             <th>Time</th>
                                             <th>Event</th>
-                                            {user?.role === "admin" && <th>User</th>}
+                                            {user?.role === "ADMIN" && <th>User</th>}
                                             <th>IP Address</th>
                                             <th>Details</th>
-                                            {user?.role === "admin" && eventTypeFilter === "ACTIVE_USER_SESSION" && <th>Action</th>}
+                                            {user?.role === "ADMIN" && eventTypeFilter === "ACTIVE_USER_SESSION" && <th>Action</th>}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {tableLoading ? (
                                             <tr>
-                                                <td colSpan={user?.role === "admin" ? (eventTypeFilter === "ACTIVE_USER_SESSION" ? "6" : "5") : "4"} className="text-center-muted">Filtering Logs...</td>
+                                                <td colSpan={user?.role === "ADMIN" ? (eventTypeFilter === "ACTIVE_USER_SESSION" ? "6" : "5") : "4"} className={styles.textCenterMuted}>Filtering Logs...</td>
                                             </tr>
                                         ) : logs.length === 0 ? (
                                             <tr>
-                                                <td colSpan={user?.role === "admin" ? (eventTypeFilter === "ACTIVE_USER_SESSION" ? "6" : "5") : "4"} className="text-center-muted">No events found matching your criteria.</td>
+                                                <td colSpan={user?.role === "ADMIN" ? (eventTypeFilter === "ACTIVE_USER_SESSION" ? "6" : "5") : "4"} className={styles.textCenterMuted}>No events found matching your criteria.</td>
                                             </tr>
                                         ) : (
                                             logs.map((log) => (
@@ -341,11 +345,11 @@ const SecurityDashboard = () => {
                                                         {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
                                                     </td>
                                                     <td>
-                                                        <span className={`badge ${getEventBadgeClass(log.event_type)}`}>
-                                                            {log.event_type.replace("_", " ")}
+                                                        <span className={`${buttonStyles.badge} ${getEventBadgeClass(log.event_type)}`}>
+                                                            {log.event_type}
                                                         </span>
                                                     </td>
-                                                    {user?.role === "admin" && (
+                                                    {user?.role === "ADMIN" && (
                                                         <td style={{ fontWeight: '600', color: '#2d3748' }}>
                                                             {log.username || `Unknown (ID: ${log.user_id || 'N/A'})`}
                                                         </td>
@@ -362,11 +366,11 @@ const SecurityDashboard = () => {
                                                         {log.event_metadata ? JSON.stringify(log.event_metadata).replace(/[{}]/g, '').replace(/"/g, '') : ''}
                                                         {log.user_email && <div style={{ marginTop: '4px' }}>{log.user_email}</div>}
                                                     </td>
-                                                    {user?.role === "admin" && eventTypeFilter === "ACTIVE_USER_SESSION" && (
+                                                    {user?.role === "ADMIN" && eventTypeFilter === "ACTIVE_USER_SESSION" && (
                                                         <td>
                                                             <button
                                                                 onClick={() => handleAdminRevokeSession(log.id)}
-                                                                className="btn-delete"
+                                                                className={buttonStyles.btnDelete}
                                                             >
                                                                 Revoke Session
                                                             </button>
@@ -383,7 +387,7 @@ const SecurityDashboard = () => {
                                 <button
                                     disabled={page === 0}
                                     onClick={() => setPage(p => Math.max(0, p - 1))}
-                                    className="btn-google"
+                                    className={`${buttonStyles.btn} ${buttonStyles.btnGoogle}`}
                                     style={{ width: 'auto', padding: '6px 16px', margin: 0 }}
                                 >
                                     Previous
@@ -392,7 +396,7 @@ const SecurityDashboard = () => {
                                 <button
                                     disabled={logs.length < limit || eventTypeFilter === "ACTIVE_USER_SESSION"}
                                     onClick={() => setPage(p => p + 1)}
-                                    className="btn-google"
+                                    className={`${buttonStyles.btn} ${buttonStyles.btnGoogle}`}
                                     style={{ width: 'auto', padding: '6px 16px', margin: 0 }}
                                 >
                                     Next

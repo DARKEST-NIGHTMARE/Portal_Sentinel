@@ -3,6 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, asc, desc
 
 from .. import models, schemas, database, dependencies
+from ..logger import get_logger
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/employees", tags=["Employees"])
 
@@ -20,10 +23,10 @@ async def get_employees(
 ):
     cache_key = f"employees:page={page}:limit={limit}:search={search}:sort={sort_by}:order={sort_order}"
     if cache_key in EMPLOYEE_CACHE:
-        print(f"⚡ Cache hit: {cache_key}")
+        logger.debug("cache_hit", extra={"key": cache_key})
         return EMPLOYEE_CACHE[cache_key]
 
-    print(f"DB query: {cache_key}")
+    logger.debug("cache_miss_db_query", extra={"key": cache_key})
     offset = (page - 1) * limit
     query = select(models.Employee)
     
@@ -69,7 +72,7 @@ async def create_employee(
     await db.commit()
     
     EMPLOYEE_CACHE.clear()
-    print(" Employee cache cleared.")
+    logger.info("employee_cache_cleared")
     return {"message": "Employee created"}
 
 @router.delete("/{emp_id}")
@@ -89,5 +92,5 @@ async def delete_employee(
     await db.commit()
     
     EMPLOYEE_CACHE.clear()
-    print(" Employee cache cleared.")
+    logger.info("employee_cache_cleared")
     return {"message": "Employee deleted"}

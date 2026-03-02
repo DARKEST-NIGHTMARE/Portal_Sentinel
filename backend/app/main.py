@@ -1,62 +1,57 @@
-from fastapi import FastAPI, Depends, Response, status, HTTPException
+import time
+import os
+from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from .database import engine, Base, get_db
+from .database import engine, Base
 from .routers import auth, employees, users, security
-from . import models, dependencies
 from .config import settings
+from .logger import setup_logging, get_logger
+
+setup_logging(level=settings.log_level if hasattr(settings, "log_level") else "INFO")
+logger = get_logger(__name__)
 
 app = FastAPI()
 
-import os
-os.makedirs("static/profiles", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = round((time.perf_counter() - start) * 1000, 2)
+    logger.info(
+        "http_request",
+        extra={
+            "method": request.method,
+            "path": request.url.path,
+            "status": response.status_code,
+            "duration_ms": duration_ms,
+            "client": request.client.host if request.client else "unknown",
+        }
+    )
+    return response
+
 @app.on_event("startup")
 async def startup():
+    os.makedirs("static/profiles", exist_ok=True)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    logger.info("application_startup", extra={"env": "development"})
 
 app.include_router(auth.router)
 app.include_router(employees.router)
 app.include_router(users.router)
 app.include_router(security.router)
-
-@app.get("/user")
-async def get_user_info(
-    user: dict = Depends(dependencies.get_current_user), 
-    db: AsyncSession = Depends(get_db)
-):
-    email = user.get("sub")
-    stmt = select(models.User).where(models.User.email == email)
-    result = await db.execute(stmt)
-    db_user = result.scalars().first()
-    
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    return {
-        "id": db_user.id,
-        "name": db_user.name,
-        "email": db_user.email,
-        "avatar_url": db_user.avatar_url,  
-        "role": db_user.role
-    }
-
-@app.get("/logout")
-def logout():
-    return {"message": "Logged out successfully"}
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():

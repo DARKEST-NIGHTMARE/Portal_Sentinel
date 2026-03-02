@@ -7,6 +7,9 @@ from fastapi.security import HTTPBearer
 
 from .. import models, schemas, database, dependencies
 from ..services.websocket import security_ws_manager
+from ..logger import get_logger
+
+logger = get_logger(__name__)
 
 token_auth_scheme = HTTPBearer()
 
@@ -37,9 +40,9 @@ async def require_admin(
             if db_user:
                 role = db_user.role
 
-    print(f"---> DEBUG: The user's role is currently: '{role}'")
+    logger.debug("admin_role_check", extra={"role": str(role)})
 
-    if role != "admin":
+    if role != models.UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Access denied. Your role is '{role}'. Admin privileges required."
