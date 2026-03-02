@@ -4,6 +4,10 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .core.database import Base
 
+class UserRole(str, enum.Enum):
+    ADMIN = "ADMIN"
+    USER = "USER"
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -12,7 +16,7 @@ class User(Base):
     avatar_url = Column(String, nullable=True)
     provider = Column(String, default="local")
     password_hash = Column(String, nullable=True)
-    role = Column(String, default="user")
+    role = Column(Enum(UserRole), default=UserRole.USER)
     
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
 

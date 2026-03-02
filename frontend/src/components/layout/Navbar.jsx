@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from "react-router-dom";
+import styles from "./Navbar.module.css";
 
 const BACKEND_URL = process.env.REACT_APP_API_URL;
 
@@ -10,37 +11,36 @@ const Navbar = ({ user, onLogout, activePage }) => {
             ? u.avatar_url
             : `${BACKEND_URL}${u.avatar_url}`;
     };
-    //   console.log(avatarSrc(user));
 
     return (
-        <nav className="navbar">
-            <div className="nav-left">
-                <h3 className="brand">Portal</h3>
+        <nav className={styles.navbar}>
+            <div className={styles.navLeft}>
+                <h3 className={styles.brand}>Portal</h3>
 
-                <div className="nav-links">
-                    <Link to="/dashboard" className={activePage === 'dashboard' ? 'active-link' : ''}>
+                <div className={styles.navLinks}>
+                    <Link to="/dashboard" className={activePage === 'dashboard' ? styles.activeLink : ''}>
                         Employees
                     </Link>
-                    {user.role === 'admin' && (
-                        <Link to="/users" className={activePage === 'users' ? 'active-link' : ''}>
+                    {user.role === 'ADMIN' && (
+                        <Link to="/users" className={activePage === 'users' ? styles.activeLink : ''}>
                             Users
                         </Link>
                     )}
-                    <Link to="/security" className={activePage === 'security' ? 'active-link' : ''}>
+                    <Link to="/security" className={activePage === 'security' ? styles.activeLink : ''}>
                         Security
                     </Link>
                 </div>
             </div>
 
-            <div className="nav-right">
-                <div className="user-info">
-                    <span className="user-name">{user.name}</span>
-                    <span className="user-role">{user.role}</span>
+            <div className={styles.navRight}>
+                <div className={styles.userInfo}>
+                    <span className={styles.userName}>{user.name}</span>
+                    <span className={styles.userRole}>{user.role}</span>
                 </div>
 
-                <img src={avatarSrc(user)} className="nav-avatar" alt="profile" />
+                <img src={avatarSrc(user)} className={styles.navAvatar} alt="profile" />
 
-                <button onClick={onLogout} className="btn-logout">
+                <button onClick={onLogout} className={styles.btnLogout}>
                     Logout
                 </button>
             </div>

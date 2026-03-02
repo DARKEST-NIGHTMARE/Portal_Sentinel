@@ -1,8 +1,12 @@
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllUsers, updateUserRole } from "../redux/usersListSlice";
-import { logout } from "../redux/authSlice";
-import Navbar from "../components/layout/Navbar";
+import { logoutUser } from "../redux/authSlice";
+import Navbar from "../components/Navbar";
+import buttonStyles from "../components/common/Button.module.css";
+import layoutStyles from "../components/common/Layout.module.css";
+import styles from "./Dashboard.module.css";
+import employeeTableStyles from "../components/EmployeeTable.module.css";
 
 const BACKEND_URL = process.env.REACT_APP_API_URL;
 
@@ -12,14 +16,14 @@ const Users = () => {
   const { list, loading } = useSelector((state) => state.usersList);
 
   useEffect(() => {
-    if (user?.role === "admin") {
+    if (user?.role === "ADMIN") {
       dispatch(fetchAllUsers());
     }
   }, [dispatch, user]);
 
   const handleRoleChange = (id, currentRole) => {
-    const newRole = currentRole === "admin" ? "user" : "admin";
-    const action = newRole === "admin" ? "Promote" : "Demote";
+    const newRole = currentRole === "ADMIN" ? "USER" : "ADMIN";
+    const action = newRole === "ADMIN" ? "Promote" : "Demote";
 
     if (window.confirm(`Are you sure you want to ${action} this user?`)) {
       dispatch(updateUserRole({ id, newRole }))
@@ -40,13 +44,13 @@ const Users = () => {
   };
 
   return (
-    <div className="dashboard-container">
-      <Navbar user={user} onLogout={() => dispatch(logout())} activePage="users" />
+    <div className={styles.dashboardContainer}>
+      <Navbar user={user} onLogout={() => dispatch(logoutUser())} activePage="users" />
 
-      <div className="glass-card">
+      <div className={layoutStyles.glassCard}>
         <h2>System Users</h2>
         {/* <div className="table-wrapper" style={{ overflowX: "auto", width: "100%" }}> */}
-        <table className="emp-table" style={{ width: "100%", tableLayout: "fixed" }}>
+        <table className={employeeTableStyles.empTable} style={{ width: "100%", tableLayout: "fixed" }}>
           <thead>
             <tr>
               <th style={{ width: "10%" }}>ID</th>
@@ -74,15 +78,15 @@ const Users = () => {
                 <td style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}><strong>{u.name}</strong></td>
                 <td style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.email}</td>
                 <td>
-                  <span className={`badge ${u.role === 'admin' ? 'badge-admin' : 'badge-user'}`}>
+                  <span className={`${buttonStyles.badge} ${u.role === 'ADMIN' ? buttonStyles.badgeAdmin : buttonStyles.badgeUser}`}>
                     {u.role ? u.role.toUpperCase() : "USER"}
                   </span>
                 </td>
                 <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
-                  {u.role === "admin" ? (
+                  {u.role === "ADMIN" ? (
                     <button
-                      className="btn-demote"
-                      onClick={() => handleRoleChange(u.id, "admin")}
+                      className={buttonStyles.btnDemote}
+                      onClick={() => handleRoleChange(u.id, "ADMIN")}
                       disabled={u.id === user.id}
                       style={{
                         ...(u.id === user.id ? { opacity: 0.5, cursor: "not-allowed" } : {}),
@@ -94,8 +98,8 @@ const Users = () => {
                     </button>
                   ) : (
                     <button
-                      className="btn-promote"
-                      onClick={() => handleRoleChange(u.id, "user")}
+                      className={buttonStyles.btnPromote}
+                      onClick={() => handleRoleChange(u.id, "USER")}
                       style={{
                         width: "100%", padding: "6px 4px", fontSize: "0.8rem",
                         whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"

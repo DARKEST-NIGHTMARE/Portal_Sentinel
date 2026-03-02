@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import Button from '../common/Button';
-import InputGroup from '../common/InputGroup';
+import Button from './Button';
+import InputGroup from './InputGroup';
+import layoutStyles from './common/Layout.module.css';
 
 const EmployeeForm = ({ onSubmit, onCancel, isLoading }) => {
   const [formData, setFormData] = useState({
@@ -21,7 +22,7 @@ const EmployeeForm = ({ onSubmit, onCancel, isLoading }) => {
   };
 
   return (
-    <div className="glass-card" style={{ marginBottom: '20px', padding: '20px', border: '1px solid #e2e8f0' }}>
+    <div className={layoutStyles.glassCard} style={{ marginBottom: '20px', padding: '20px', border: '1px solid #e2e8f0' }}>
       <h3 style={{ marginTop: 0, color: '#2d3748' }}>Add New Employee</h3>
 
       <form onSubmit={handleSubmit} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
@@ -64,7 +65,6 @@ const EmployeeForm = ({ onSubmit, onCancel, isLoading }) => {
             onClick={onCancel}
             variant="google"
             type="button"
-            className="btn-action"
             style={{ width: 'auto' }}
           >
             Cancel
@@ -74,7 +74,6 @@ const EmployeeForm = ({ onSubmit, onCancel, isLoading }) => {
             type="submit"
             variant="jwt"
             disabled={isLoading}
-            className="btn-action"
             style={{ width: 'auto' }}
           >
             {isLoading ? "Saving..." : "Save Employee"}

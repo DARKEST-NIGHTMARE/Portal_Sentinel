@@ -19,6 +19,27 @@ async def get_all_users(
     
     return users
 
+@router.get("/me")
+async def get_user_info(
+    current_user: dict = Depends(dependencies.get_current_user), 
+    db: AsyncSession = Depends(database.get_db)
+):
+    email = current_user.get("sub")
+    stmt = select(models.User).where(models.User.email == email)
+    result = await db.execute(stmt)
+    db_user = result.scalars().first()
+    
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {
+        "id": db_user.id,
+        "name": db_user.name,
+        "email": db_user.email,
+        "avatar_url": db_user.avatar_url,  
+        "role": db_user.role
+    }
+
 @router.put("/{user_id}/role")
 async def change_user_role(
     user_id: int, 
@@ -33,8 +54,8 @@ async def change_user_role(
     if not user_to_update:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if user_to_update.role == "admin" and request.role != "admin":
-        count_stmt = select(func.count(models.User.id)).where(models.User.role == "admin")
+    if user_to_update.role == models.UserRole.ADMIN and request.role != models.UserRole.ADMIN:
+        count_stmt = select(func.count(models.User.id)).where(models.User.role == models.UserRole.ADMIN)
         count_res = await db.execute(count_stmt)
         total_admins = count_res.scalar()
         
@@ -47,6 +68,19 @@ async def change_user_role(
     user_to_update.role = request.role
     await db.commit()
     await db.refresh(user_to_update)
+
+    # Invalidate all active sessions for the user whose role changed.
+    # This forces them to re-login and get a fresh token reflecting the new role.
+    sessions_stmt = select(models.UserSession).where(
+        models.UserSession.user_id == user_to_update.id,
+        models.UserSession.is_active == True
+    )
+    sessions_result = await db.execute(sessions_stmt)
+    active_sessions = sessions_result.scalars().all()
+    for session in active_sessions:
+        session.is_active = False
+    await db.commit()
+
     return user_to_update
 
 @router.get("/me/sessions", response_model=List[schemas.UserSessionOut])

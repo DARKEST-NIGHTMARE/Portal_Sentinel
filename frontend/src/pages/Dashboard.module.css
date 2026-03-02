@@ -1,0 +1,22 @@
+.dashboardContainer {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.dashboardCard {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+}
+
+.dashboardCard h2 {
+    margin-top: 0;
+    color: #4a5568;
+    font-size: 1.1rem;
+    border-bottom: 2px solid #edf2f7;
+    padding-bottom: 12px;
+    margin-bottom: 15px;
+}

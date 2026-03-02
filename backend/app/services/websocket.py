@@ -1,4 +1,7 @@
 from fastapi import WebSocket
+from ..logger import get_logger
+
+logger = get_logger(__name__)
 
 class ConnectionManager:
     def __init__(self):
@@ -16,6 +19,6 @@ class ConnectionManager:
             try:
                 await connection.send_json(message)
             except Exception as e:
-                print(f"Failed to send message: {e}")
+                logger.warning("ws_send_failed", extra={"error": str(e)})
 
 security_ws_manager = ConnectionManager()

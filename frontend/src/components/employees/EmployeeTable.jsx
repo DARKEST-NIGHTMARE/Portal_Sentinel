@@ -1,10 +1,11 @@
 import React from "react";
+import styles from "./EmployeeTable.module.css";
 
 const EmployeeTable = ({ employees, sortConfig, onSort, onDelete, isAdmin, loading }) => {
   if (loading) return <div>Loading...</div>;
 
   return (
-    <table className="emp-table">
+    <table className={styles.empTable}>
       <thead>
         <tr>
           <th>ID</th>
@@ -23,7 +24,7 @@ const EmployeeTable = ({ employees, sortConfig, onSort, onDelete, isAdmin, loadi
             <td>${emp.salary}</td>
             {isAdmin && (
               <td>
-                <button className="btn-delete" onClick={() => onDelete(emp.id)}>Delete</button>
+                <button className={styles.btnDelete} onClick={() => onDelete(emp.id)}>Delete</button>
               </td>
             )}
           </tr>
