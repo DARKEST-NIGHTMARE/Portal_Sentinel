@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import Button from './Button';
-import InputGroup from './InputGroup';
-import layoutStyles from './common/Layout.module.css';
+import Button from '../common/Button';
+import InputGroup from '../common/InputGroup';
+import layoutStyles from '../common/Layout.module.css';
 
 const EmployeeForm = ({ onSubmit, onCancel, isLoading }) => {
   const [formData, setFormData] = useState({

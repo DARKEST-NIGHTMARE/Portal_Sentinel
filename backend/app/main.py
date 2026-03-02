@@ -4,9 +4,9 @@ from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .database import engine, Base
-from .routers import auth, employees, users, security
-from .config import settings
+from .core.database import engine, Base
+from .api import auth, employees, users, security
+from .core.config import settings
 from .logger import setup_logging, get_logger
 
 setup_logging(level=settings.log_level if hasattr(settings, "log_level") else "INFO")

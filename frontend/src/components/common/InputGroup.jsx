@@ -1,5 +1,5 @@
 import React from 'react';
-import formStyles from './common/Form.module.css';
+import formStyles from './Form.module.css';
 
 const InputGroup = ({
   label,

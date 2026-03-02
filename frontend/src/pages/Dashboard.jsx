@@ -2,14 +2,14 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchEmployees, setPage, setSearch, setSort, deleteEmployee, addEmployee } from "../redux/employeeSlice"; // 2. Import addEmployee
 import { logoutUser } from "../redux/authSlice";
-import Navbar from "../components/Navbar";
-import EmployeeTable from "../components/EmployeeTable";
+import Navbar from "../components/layout/Navbar";
+import EmployeeTable from "../components/employees/EmployeeTable";
 import employeeTableStyles from "../components/EmployeeTable.module.css";
 import styles from "./Dashboard.module.css";
 import buttonStyles from "../components/common/Button.module.css";
 import layoutStyles from "../components/common/Layout.module.css";
 import formStyles from "../components/common/Form.module.css";
-import EmployeeForm from "../components/EmployeeForm";
+import EmployeeForm from "../components/employees/EmployeeForm";
 
 const Dashboard = () => {
   const dispatch = useDispatch();

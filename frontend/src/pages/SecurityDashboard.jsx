@@ -7,8 +7,8 @@ import {
 
 import { securityApi } from "../services/securityApi";
 import { logoutUser } from "../redux/authSlice";
-import Navbar from "../components/Navbar";
-import SecurityMap from "../components/SecurityMap";
+import Navbar from "../components/layout/Navbar";
+import SecurityMap from "../components/security/SecurityMap";
 import { useNavigate } from "react-router-dom";
 import buttonStyles from "../components/common/Button.module.css";
 import layoutStyles from "../components/common/Layout.module.css";
@@ -25,7 +25,7 @@ const SecurityDashboard = () => {
     const [alerts, setAlerts] = useState([]);
     const [activeUsers, setActiveUsers] = useState([]);
     const [mySessions, setMySessions] = useState([]);
-    const [loading, setLoading] = useState(true);
+
     const [tableLoading, setTableLoading] = useState(true);
     const [error, setError] = useState(null);
 

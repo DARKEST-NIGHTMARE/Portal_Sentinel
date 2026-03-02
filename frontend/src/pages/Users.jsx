@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllUsers, updateUserRole } from "../redux/usersListSlice";
 import { logoutUser } from "../redux/authSlice";
-import Navbar from "../components/Navbar";
+import Navbar from "../components/layout/Navbar";
 import buttonStyles from "../components/common/Button.module.css";
 import layoutStyles from "../components/common/Layout.module.css";
 import styles from "./Dashboard.module.css";

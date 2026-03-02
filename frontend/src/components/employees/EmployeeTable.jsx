@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "./EmployeeTable.module.css";
+import styles from "../EmployeeTable.module.css";
 
 const EmployeeTable = ({ employees, sortConfig, onSort, onDelete, isAdmin, loading }) => {
   if (loading) return <div>Loading...</div>;
