@@ -6,7 +6,7 @@ import datetime
 import bcrypt
 from datetime import datetime, timedelta, timezone
 from .database import get_db
-from .models import User, UserSession
+from .models import User, UserSession, UserRole
 from .config import settings
 
 JWT_SECRET = settings.secret_key
@@ -86,6 +86,6 @@ async def get_current_admin(
     result = await db.execute(stmt)
     db_user = result.scalars().first()
     
-    if not db_user or db_user.role != "admin":
+    if not db_user or db_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized. Admins only!")
     return db_user

@@ -18,6 +18,27 @@ async def get_all_users(
     
     return users
 
+@router.get("/me")
+async def get_user_info(
+    current_user: dict = Depends(dependencies.get_current_user), 
+    db: AsyncSession = Depends(database.get_db)
+):
+    email = current_user.get("sub")
+    stmt = select(models.User).where(models.User.email == email)
+    result = await db.execute(stmt)
+    db_user = result.scalars().first()
+    
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {
+        "id": db_user.id,
+        "name": db_user.name,
+        "email": db_user.email,
+        "avatar_url": db_user.avatar_url,  
+        "role": db_user.role
+    }
+
 @router.put("/{user_id}/role")
 async def change_user_role(
     user_id: int, 
@@ -32,8 +53,8 @@ async def change_user_role(
     if not user_to_update:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if user_to_update.role == "admin" and request.role != "admin":
-        count_stmt = select(func.count(models.User.id)).where(models.User.role == "admin")
+    if user_to_update.role == models.UserRole.ADMIN and request.role != models.UserRole.ADMIN:
+        count_stmt = select(func.count(models.User.id)).where(models.User.role == models.UserRole.ADMIN)
         count_res = await db.execute(count_stmt)
         total_admins = count_res.scalar()
         
