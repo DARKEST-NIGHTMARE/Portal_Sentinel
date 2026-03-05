@@ -1,4 +1,5 @@
 from fastapi import Depends, HTTPException, status, Request
+import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import jwt
@@ -99,7 +100,8 @@ async def get_current_db_user(
     db: AsyncSession = Depends(get_db)
 ) -> User:
     email = token_data.get("sub")
-    stmt = select(User).where(User.email == email)
+    from sqlalchemy.orm import selectinload
+    stmt = select(User).options(selectinload(User.clio_connection)).where(User.email == email)
     result = await db.execute(stmt)
     db_user = result.scalars().first()
     
@@ -117,3 +119,6 @@ async def get_clio_user(
             detail="Access denied. This action requires Clio authentication."
         )
     return user
+
+async def get_http_client(request: Request) -> httpx.AsyncClient:
+    return request.app.state.http_client

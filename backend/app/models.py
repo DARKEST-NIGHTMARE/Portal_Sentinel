@@ -17,12 +17,20 @@ class User(Base):
     provider = Column(String, default="local")
     password_hash = Column(String, nullable=True)
     role = Column(Enum(UserRole), default=UserRole.USER)
-
-    # Clio Persistence
-    clio_access_token = Column(String, nullable=True)
-    clio_refresh_token = Column(String, nullable=True)
     
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
+    clio_connection = relationship("ClioConnection", back_populates="user", uselist=False, cascade="all, delete-orphan")
+
+class ClioConnection(Base):
+    __tablename__ = "clio_connections"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    
+    access_token = Column(String, nullable=True)
+    refresh_token = Column(String, nullable=True)
+    base_url = Column(String, nullable=True)
+
+    user = relationship("User", back_populates="clio_connection")
 
 class UserSession(Base):
     __tablename__ = "user_sessions"

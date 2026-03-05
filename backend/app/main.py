@@ -1,5 +1,6 @@
 import time
 import os
+import httpx
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -48,21 +49,18 @@ async def log_requests(request: Request, call_next):
 
 @app.on_event("startup")
 async def startup():
+    app.state.http_client = httpx.AsyncClient()
     os.makedirs("static/profiles", exist_ok=True)
     async with engine.begin() as conn:
-        # Create tables first (for new setups)
         await conn.run_sync(Base.metadata.create_all)
-        
-        # Manually add Clio columns if they don't exist (for existing setups)
-        from sqlalchemy import text
-        try:
-            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS clio_access_token VARCHAR;"))
-            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS clio_refresh_token VARCHAR;"))
-            logger.info("database_schema_sync", extra={"status": "columns_verified"})
-        except Exception as e:
-            logger.warning("database_schema_sync_warning", extra={"error": str(e)})
 
     logger.info("application_startup", extra={"env": "development"})
+
+@app.on_event("shutdown")
+async def shutdown():
+    if hasattr(app.state, "http_client"):
+        await app.state.http_client.aclose()
+        logger.info("application_shutdown", extra={"status": "http_client_closed"})
 
 app.include_router(auth.router)
 app.include_router(employees.router)

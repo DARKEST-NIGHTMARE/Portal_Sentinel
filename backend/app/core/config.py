@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     clio_client_id: str
     clio_client_secret: str
     clio_redirect_uri: str
+    clio_base_url: str = "https://app.clio.com"
     
     # class Coonfig:
     #     # env_file = ".env"

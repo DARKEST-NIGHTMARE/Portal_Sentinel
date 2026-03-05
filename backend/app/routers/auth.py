@@ -11,50 +11,16 @@ from ..config import settings
 from ..services.security_service import SecurityService 
 from ..models import EventType
 from ..logger import get_logger
+from ..services.auth_service import AuthService
+from ..services.location_service import LocationService
+from ..core.dependencies import get_http_client
 
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
-async def get_ip_location_data(ip: str) -> dict:
-    if ip in ["127.0.0.1", "::1", "localhost", "0.0.0.0"]:
-        return {"location": "Localhost (Testing)", "lat": 23.2156, "lon": 72.6369}
-    
-    try:
-        async with httpx.AsyncClient() as client:
-            res = await client.get(f"http://ip-api.com/json/{ip}?fields=city,country,lat,lon,status")
-            data = res.json()
-            if data.get("status") == "success":
-                return {
-                    "location": f"{data.get('city')}, {data.get('country')}",
-                    "lat": data.get("lat"),
-                    "lon": data.get("lon")
-                }
-    except Exception as e:
-        logger.warning("location_lookup_failed", extra={"ip": ip, "error": str(e)})
-    return {"location": "Unknown Location", "lat": None, "lon": None}
-
-async def get_coord_location(lat: float, lon: float) -> str:
-    try:
-        async with httpx.AsyncClient() as client:
-            headers = {"User-Agent": "SecurityApp/1.0"}
-            res = await client.get(
-                f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}",
-                headers=headers
-            )
-            if res.status_code == 200:
-                data = res.json()
-                address = data.get("address", {})
-                city = address.get("city") or address.get("town") or address.get("village") or address.get("county")
-                country = address.get("country")
-                
-                if city and country:
-                    return f"{city}, {country}"
-    except Exception as e:
-        logger.warning("coord_lookup_failed", extra={"lat": lat, "lon": lon, "error": str(e)})
-        
-    return None 
+# Location logic moved to LocationService
 
 @router.post("/login")
 async def login(request: Request,response: Response, payload: schemas.LoginRequest, db: AsyncSession = Depends(database.get_db)):
@@ -66,12 +32,14 @@ async def login(request: Request,response: Response, payload: schemas.LoginReque
 
     # 1. Check if we have exact GPS from the browser
     if lat and lon:
-        location_str = await get_coord_location(lat, lon)
+        http_client = request.app.state.http_client
+        location_str = await LocationService.get_coord_location(lat, lon, http_client)
         location_source = "GPS (Precise)"
         
     # 2. If no GPS, fallback to IP Geolocation
     if not location_str or location_str == "Unknown":
-        ip_data = await get_ip_location_data(client_ip)
+        http_client = request.app.state.http_client
+        ip_data = await LocationService.get_ip_location_data(client_ip, http_client)
         location_str = ip_data["location"]
         lat = ip_data["lat"]
         lon = ip_data["lon"]
@@ -170,125 +138,60 @@ async def login(request: Request,response: Response, payload: schemas.LoginReque
 
 
 @router.post("/google")
-async def google_login(request: Request, response: Response, payload: schemas.GoogleLoginRequest, db: AsyncSession = Depends(database.get_db)):
+async def google_login(
+    request: Request, 
+    response: Response, 
+    payload: schemas.GoogleLoginRequest, 
+    db: AsyncSession = Depends(database.get_db),
+    http_client: httpx.AsyncClient = Depends(get_http_client)
+):
     client_ip = request.client.host
-
-    location_str = "Unknown"
-    location_source = "Unknown"
+    device_info = request.headers.get("User-Agent", "Unknown Device")
+    
+    # Get location data
     lat = payload.latitude
     lon = payload.longitude
+    location_str = "Unknown"
+    location_source = "Unknown"
 
-    # 1. Check if we have exact GPS from the browser
     if lat and lon:
-        location_str = await get_coord_location(lat, lon)
+        location_str = await LocationService.get_coord_location(lat, lon, http_client)
         location_source = "GPS (Precise)"
         
-    # 2. If no GPS, fallback to IP Geolocation
     if not location_str or location_str == "Unknown":
-        ip_data = await get_ip_location_data(client_ip)
+        ip_data = await LocationService.get_ip_location_data(client_ip, http_client)
         location_str = ip_data["location"]
         lat = ip_data["lat"]
         lon = ip_data["lon"]
         location_source = "IP (Approximate)"
-    
-    async with httpx.AsyncClient() as client:
-        token_url = "https://oauth2.googleapis.com/token"
-        token_data = {
-            "client_id": settings.google_client_id,
-            "client_secret": settings.google_client_secret,
-            "code": payload.code,
-            "grant_type": "authorization_code",
-            "redirect_uri": settings.google_redirect_uri,
-        }
         
-        token_res = await client.post(token_url, data=token_data)
-        
-        if token_res.status_code != 200:
-            logger.error("google_token_exchange_failed", extra={"response": token_res.text})
-            raise HTTPException(status_code=400, detail="Invalid Google Code")
-            
-        access_token = token_res.json().get("access_token")
-        
-        user_info_res = await client.get(
-            "https://www.googleapis.com/oauth2/v3/userinfo",
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
-        user_info = user_info_res.json()
-
-    email = user_info.get("email")
-    name = user_info.get("name")
-    avatar = user_info.get("picture")
-
-    stmt = select(models.User).where(models.User.email == email)
-    result = await db.execute(stmt)
-    db_user = result.scalars().first()
-    
-    if not db_user:
-        new_user = models.User(
-            email=email, 
-            name=name, 
-            avatar_url=avatar, 
-            provider="google"
-        )
-        db.add(new_user)
-        await db.commit()     
-        await db.refresh(new_user) 
-        db_user = new_user 
-        logger.info("user_registered", extra={"email": email, "provider": "google"})
-    else:
-        db_user.name = name
-        db_user.avatar_url = avatar
-        await db.commit()
-        logger.info("user_login_google", extra={"email": email})
-
-    await SecurityService.check_suspicious_activity(db, db_user.id, client_ip)
-    await SecurityService.log_event(
-        db, 
-        EventType.ACTIVE_SESSION, 
-        client_ip, 
-        user_id=db_user.id, 
-        event_metadata={
-            "provider": "google", 
-            "location": location_str, 
-            "location_source": location_source,
-            "lat": lat,
-            "lon": lon
-        }
+    auth_service = AuthService(db, http_client)
+    access_token, refresh_token, user = await auth_service.authenticate_google(
+        code=payload.code,
+        client_ip=client_ip,
+        location_str=location_str,
+        location_source=location_source,
+        lat=lat,
+        lon=lon,
+        device_info=device_info
     )
-
-    refresh_token = dependencies.create_refresh_token(email)
-    
-    device_info = request.headers.get("User-Agent", "Unknown Device")
-
-    new_session = models.UserSession(
-        user_id=db_user.id,
-        refresh_token=refresh_token,
-        device_info=device_info,
-        ip_address=client_ip,
-        location=location_str
-    )
-    db.add(new_session)
-    await db.commit()
-    await db.refresh(new_session)
-
-    local_token = dependencies.create_jwt_token(email, name, new_session.id)
 
     response.set_cookie(
-        key = "refresh_token",
-        value = refresh_token,
-        httponly = True,
-        max_age = 7*24*3600,
-        samesite = "lax",
-        secure = False
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        max_age=7*24*3600,
+        samesite="lax",
+        secure=False
     )
     
     return {
-        "token": local_token,
+        "token": access_token,
         "user": {
-            "name": name,
-            "email": email,
-            "avatar_url": avatar,
-            "role": db_user.role if hasattr(db_user, 'role') else "user"
+            "name": user.name,
+            "email": user.email,
+            "avatar_url": user.avatar_url,
+            "role": user.role if hasattr(user, 'role') else "user"
         }
     }
 
