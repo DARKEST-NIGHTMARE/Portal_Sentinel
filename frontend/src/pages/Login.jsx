@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser, registerUser } from "../redux/authSlice";
 import { useGoogleLogin } from "../hooks/useGoogleLogin";
+import { useClioLogin } from "../hooks/useClioLogin";
 import { useNavigate } from "react-router-dom";
 import buttonStyles from "../components/common/Button.module.css";
 import layoutStyles from "../components/common/Layout.module.css";
@@ -36,6 +37,7 @@ const Login = () => {
   const [regPicture, setRegPicture] = useState(null);
 
   const { loginGooglePopup } = useGoogleLogin();
+  const { loginClioPopup } = useClioLogin();
   const [isRegistering, setIsRegistering] = useState(false);
 
   const [isLocating, setIsLocating] = useState(false);
@@ -95,9 +97,14 @@ const Login = () => {
         {isRegistering ? "Register below using JWT" : "Choose an authentication strategy"}
       </p>
 
-      <button onClick={loginGooglePopup} className={`${buttonStyles.btn} ${buttonStyles.btnGoogle}`}>
+      <button onClick={loginGooglePopup} className={`${buttonStyles.btn} ${buttonStyles.btnGoogle}`} style={{ marginBottom: "0.75rem" }}>
         <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" alt="G" />
         Continue with Google
+      </button>
+
+      <button onClick={loginClioPopup} className={`${buttonStyles.btn}`} style={{ backgroundColor: "#00529b", color: "white", marginBottom: "0.5rem" }}>
+        <img src="https://www.clio.com/wp-content/themes/clio/assets/images/favicon.png" width="20" alt="C" style={{ marginRight: "10px" }} />
+        Continue with Clio Manage
       </button>
 
       <div className="divider" style={{ display: "flex", alignItems: "center", color: "#cbd5e0", fontSize: "0.8rem", margin: "1.5rem 0", fontWeight: "bold" }}>

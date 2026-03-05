@@ -8,6 +8,11 @@ class GoogleLoginRequest(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 
+class ClioLoginRequest(BaseModel):
+    code: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
 class LoginRequest(BaseModel):
     username: str
     password: str

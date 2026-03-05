@@ -35,6 +35,16 @@ export const googleLogin = createAsyncThunk("auth/google", async (payload, { rej
   }
 });
 
+export const clioLogin = createAsyncThunk("auth/clio", async (payload, { rejectWithValue }) => {
+  try {
+    const res = await api.post("/api/auth/clio", payload);
+    localStorage.setItem("token", res.data.token);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue("Clio Login Failed");
+  }
+});
+
 export const fetchUser = createAsyncThunk("auth/me", async () => {
   const res = await api.get("/api/users/me");
   return res.data;
@@ -67,7 +77,7 @@ const authSlice = createSlice({
       .addCase(fetchUser.fulfilled, (state, action) => { state.user = action.payload; })
       .addCase(registerUser.fulfilled, (state) => { state.loading = false; })
       .addMatcher(
-        (action) => action.type === loginUser.fulfilled.type || action.type === googleLogin.fulfilled.type,
+        (action) => [loginUser.fulfilled.type, googleLogin.fulfilled.type, clioLogin.fulfilled.type].includes(action.type),
         (state, action) => {
           state.token = action.payload.token;
           state.user = action.payload.user;

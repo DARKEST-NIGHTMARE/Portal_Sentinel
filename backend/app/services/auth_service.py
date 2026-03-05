@@ -89,6 +89,94 @@ class AuthService:
 
         return await self._finalize_login(db_user, client_ip, location_str, location_source, lat, lon, device_info, provider="google")
 
+    async def authenticate_clio(self, code: str, client_ip: str, location_str: str, location_source: str, lat: float, lon: float, device_info: str):
+        # Clio region can be app.clio.com, app.clio.eu, ca.app.clio.com, or au.app.clio.com
+        base_url = "https://app.clio.com"
+        
+        async with httpx.AsyncClient() as client:
+            token_url = f"{base_url}/oauth/token"
+            token_data = {
+                "client_id": settings.clio_client_id,
+                "client_secret": settings.clio_client_secret,
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": settings.clio_redirect_uri,
+            }
+            print("Sending to Clio:", {k: v if k != "client_secret" else "REDACTED" for k, v in token_data.items()})
+            print("Redirect URI in Config:", settings.clio_redirect_uri)
+            
+            token_res = await client.post(token_url, data=token_data)
+            if token_res.status_code != 200:
+                print(f"Clio Token Error ({token_res.status_code}):", token_res.text)
+                raise HTTPException(status_code=400, detail=f"Clio OAuth Failed: {token_res.text}")
+                
+            token_json = token_res.json()
+            access_token = token_json.get("access_token")
+            
+            # Fetch user info from Clio
+            #endpoint is who_am_i
+            user_info_res = await client.get(
+                f"{base_url}/api/v4/users/who_am_i",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/json"
+                }
+            )
+            
+            if user_info_res.status_code != 200:
+                print(f"Clio User Info Error ({user_info_res.status_code}):", user_info_res.text)
+                raise HTTPException(status_code=400, detail=f"Failed to fetch Clio user info: {user_info_res.text}")
+                
+            user_json = user_info_res.json()
+            print("Clio Who Am I Data:", user_json)
+            user_data = user_json.get("data", {})
+            user_id = user_data.get("id")
+            
+            email = user_data.get("email")
+            name = f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}".strip() or user_data.get("name")
+
+            # If email is missing, we must fetch the full user record
+            if not email and user_id:
+                print(f"Email missing from who_am_i, fetching full user record for ID: {user_id}")
+                full_user_res = await client.get(
+                    f"{base_url}/api/v4/users/{user_id}.json",
+                    params={"fields": "id,email,name,first_name,last_name"},
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Accept": "application/json"
+                    }
+                )
+                if full_user_res.status_code == 200:
+                    full_user_data = full_user_res.json().get("data", {})
+                    print("Clio Full User Data:", full_user_data)
+                    email = full_user_data.get("email")
+                    if not name:
+                        name = f"{full_user_data.get('first_name', '')} {full_user_data.get('last_name', '')}".strip() or full_user_data.get("name")
+
+        if not email:
+            raise HTTPException(status_code=400, detail="Clio account does not have an email associated")
+
+        db_user = await self.user_repo.get_by_email(email)
+        
+        if not db_user:
+            db_user = await self.user_repo.create(
+                email=email, 
+                name=name, 
+                provider="clio"
+            )
+            print(f"Created New Clio User: {email}")
+        
+        # Always update tokens and name
+        await self.user_repo.update(
+            db_user, 
+            name=name,
+            clio_access_token=access_token,
+            clio_refresh_token=token_json.get("refresh_token")
+        )
+        print(f"Updated Clio tokens for: {email}")
+
+        return await self._finalize_login(db_user, client_ip, location_str, location_source, lat, lon, device_info, provider="clio")
+
     async def _finalize_login(self, db_user, client_ip, location_str, location_source, lat, lon, device_info, provider="local"):
         await SecurityService.check_suspicious_activity(self.db, db_user.id, client_ip)
         await SecurityService.log_event(
@@ -116,6 +204,7 @@ class AuthService:
         )
 
         access_token = dependencies.create_jwt_token(db_user.email, db_user.name, new_session.id)
+        print(f"DEBUG: Login Token for {db_user.email}: {access_token}")
         
         return access_token, refresh_token, db_user
 

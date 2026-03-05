@@ -17,7 +17,7 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 # 3. NOW DO THE IMPORTS
 # Import the Base from your database file
-from app.database import Base
+from app.core.database import Base
 
 # IMPORTANT: You MUST import your models file here. 
 # Even if you don't use the 'models' variable, this line "registers" 

@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .core.database import engine, Base
-from .api import auth, employees, users, security
+from .api import auth, employees, users, security, clio
 from .core.config import settings
 from .logger import setup_logging, get_logger
 
@@ -18,7 +18,12 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,13 +50,26 @@ async def log_requests(request: Request, call_next):
 async def startup():
     os.makedirs("static/profiles", exist_ok=True)
     async with engine.begin() as conn:
+        # Create tables first (for new setups)
         await conn.run_sync(Base.metadata.create_all)
+        
+        # Manually add Clio columns if they don't exist (for existing setups)
+        from sqlalchemy import text
+        try:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS clio_access_token VARCHAR;"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS clio_refresh_token VARCHAR;"))
+            logger.info("database_schema_sync", extra={"status": "columns_verified"})
+        except Exception as e:
+            logger.warning("database_schema_sync_warning", extra={"error": str(e)})
+
     logger.info("application_startup", extra={"env": "development"})
 
 app.include_router(auth.router)
 app.include_router(employees.router)
 app.include_router(users.router)
 app.include_router(security.router)
+
+app.include_router(clio.router)
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():

@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     google_client_id: str
     google_client_secret: str
     google_redirect_uri: str
+
+    clio_client_id: str
+    clio_client_secret: str
+    clio_redirect_uri: str
     
     # class Coonfig:
     #     # env_file = ".env"

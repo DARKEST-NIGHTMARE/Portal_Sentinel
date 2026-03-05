@@ -17,6 +17,10 @@ class User(Base):
     provider = Column(String, default="local")
     password_hash = Column(String, nullable=True)
     role = Column(Enum(UserRole), default=UserRole.USER)
+
+    # Clio Persistence
+    clio_access_token = Column(String, nullable=True)
+    clio_refresh_token = Column(String, nullable=True)
     
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
 

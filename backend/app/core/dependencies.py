@@ -54,12 +54,16 @@ def verify_refresh_token(token: str):
     except Exception:
         return None
 
-async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid token")
-    
-    token = auth_header.split(" ")[1]
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+security = HTTPBearer()
+
+async def get_current_user(
+    request: Request, 
+    token_data: HTTPAuthorizationCredentials = Depends(security),
+    db: AsyncSession = Depends(get_db)
+):
+    token = token_data.credentials
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
         
@@ -89,3 +93,27 @@ async def get_current_admin(
     if not db_user or db_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized. Admins only!")
     return db_user
+
+async def get_current_db_user(
+    token_data: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> User:
+    email = token_data.get("sub")
+    stmt = select(User).where(User.email == email)
+    result = await db.execute(stmt)
+    db_user = result.scalars().first()
+    
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return db_user
+
+async def get_clio_user(
+    user: User = Depends(get_current_db_user)
+) -> User:
+    """Enforces that the user must be authenticated via Clio."""
+    if user.provider != "clio":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. This action requires Clio authentication."
+        )
+    return user

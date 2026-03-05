@@ -77,6 +77,44 @@ async def google_login(request: Request, response: Response, payload: schemas.Go
     }
 
 
+@router.post("/clio")
+async def clio_login(request: Request, response: Response, payload: schemas.ClioLoginRequest, db: AsyncSession = Depends(get_db)):
+    client_ip = request.client.host
+    location_str = "Unknown"
+    location_source = "Unknown"
+    
+    if payload.latitude and payload.longitude:
+        location_str = await LocationService.get_coord_location(payload.latitude, payload.longitude)
+        location_source = "GPS (Precise)"
+        
+    if not location_str or location_str == "Unknown":
+        ip_data = await LocationService.get_ip_location_data(client_ip)
+        location_str = ip_data["location"]
+        location_source = "IP (Approximate)"
+
+    auth_service = AuthService(db)
+    access_token, refresh_token, db_user = await auth_service.authenticate_clio(
+        code=payload.code, 
+        client_ip=client_ip, 
+        location_str=location_str, 
+        location_source=location_source, 
+        lat=payload.latitude, 
+        lon=payload.longitude, 
+        device_info=request.headers.get("User-Agent", "Unknown Device")
+    )
+
+    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, max_age=7*24*3600, samesite="lax", secure=False)
+    return {
+        "token": access_token,
+        "user": {
+            "name": db_user.name, 
+            "email": db_user.email, 
+            "avatar_url": db_user.avatar_url, 
+            "role": db_user.role if hasattr(db_user, 'role') else "user"
+        }
+    }
+
+
 @router.post("/refresh")
 async def refresh_access_token(refresh_token: str = Cookie(None), db: AsyncSession = Depends(get_db)):
     auth_service = AuthService(db)
