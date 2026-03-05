@@ -11,6 +11,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 const Login = React.lazy(() => import("./pages/Login"));
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 const Users = React.lazy(() => import("./pages/Users"));
+const ClioDashboard = React.lazy(() => import("./pages/ClioDashboard"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
               <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
               <Route path="/users" element={<PrivateRoute><Users /></PrivateRoute>} />
               <Route path="/security" element={<PrivateRoute><SecurityDashboard /></PrivateRoute>} />
+              <Route path="/clio" element={<PrivateRoute><ClioDashboard /></PrivateRoute>} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

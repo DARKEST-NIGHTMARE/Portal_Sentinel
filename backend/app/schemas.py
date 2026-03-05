@@ -57,6 +57,13 @@ class UserActivityOut(BaseModel):
     class Config:
         from_attributes = True
 
+class BookSlotRequest(BaseModel):
+    date: str       # YYYY-MM-DD
+    start_time: str # HH:MM (24h)
+    end_time: str   # HH:MM (24h)
+    summary: str
+    timezone_offset: str = "+00:00"
+
 class UserSessionOut(BaseModel):
     id: int
     user_id: int

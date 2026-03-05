@@ -1,0 +1,255 @@
+.tabBar {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 1.5rem;
+}
+
+.tab {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #718096;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: -2px;
+}
+
+.tab:hover {
+    color: #4a5568;
+    background: #f7fafc;
+}
+
+.tabActive {
+    color: #5a67d8;
+    border-bottom-color: #5a67d8;
+}
+
+.tabContent {
+    min-height: 300px;
+}
+
+.headerRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.headerRow h2 {
+    margin: 0;
+    color: #2d3748;
+    font-size: 1.25rem;
+}
+
+.errorBanner {
+    background: #fff5f5;
+    color: #c53030;
+    border: 1px solid #feb2b2;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.errorBanner button {
+    background: none;
+    border: none;
+    color: #c53030;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 1.1rem;
+}
+
+.emptyState {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #a0aec0;
+}
+
+.emptyState p {
+    font-size: 1rem;
+    margin-top: 0.5rem;
+}
+
+.loadingSpinner {
+    text-align: center;
+    padding: 3rem;
+    color: #718096;
+    font-weight: 600;
+}
+
+.statusOpen {
+    color: #2f855a;
+    font-weight: 600;
+}
+
+.statusClosed {
+    color: #c53030;
+    font-weight: 600;
+}
+
+.statusPending {
+    color: #c05621;
+    font-weight: 600;
+}
+
+.commBody {
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #718096;
+    font-size: 0.85rem;
+}
+
+.bookingForm {
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.bookingTitle {
+    margin: 0 0 1rem 0;
+    color: #2d3748;
+    font-size: 1.1rem;
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 1rem;
+}
+
+.formField label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #718096;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.formField input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #2d3748;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.formField input:focus {
+    outline: none;
+    border-color: #5a67d8;
+    box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.1);
+}
+
+.btnBook {
+    background: linear-gradient(to right, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btnBook:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btnBook:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.bookingSuccess {
+    background: #f0fff4;
+    color: #2f855a;
+    border: 1px solid #9ae6b4;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 1rem;
+    font-weight: 600;
+}
+
+.bookingConflict {
+    background: #fffaf0;
+    border: 1px solid #fbd38d;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 1rem;
+}
+
+.conflictMsg {
+    color: #c05621;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+}
+
+.conflictChip {
+    display: inline-block;
+    background: #fed7d7;
+    color: #9b2c2c;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin: 0 4px;
+}
+
+.slotChips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.slotChip {
+    background: white;
+    border: 2px solid #9ae6b4;
+    color: #2f855a;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.slotChip:hover {
+    background: #2f855a;
+    color: white;
+    border-color: #2f855a;
+    transform: translateY(-1px);
+}
+
+.accessDenied {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.accessDenied h2 {
+    color: #c53030;
+    margin-bottom: 0.5rem;
+}
+
+.accessDenied p {
+    color: #718096;
+}

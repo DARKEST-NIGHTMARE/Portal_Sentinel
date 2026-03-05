@@ -29,6 +29,11 @@ const Navbar = ({ user, onLogout, activePage }) => {
                     <Link to="/security" className={activePage === 'security' ? styles.activeLink : ''}>
                         Security
                     </Link>
+                    {user.provider === 'clio' && (
+                        <Link to="/clio" className={activePage === 'clio' ? styles.activeLink : ''}>
+                            Clio
+                        </Link>
+                    )}
                 </div>
             </div>
 

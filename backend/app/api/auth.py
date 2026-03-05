@@ -72,7 +72,8 @@ async def google_login(request: Request, response: Response, payload: schemas.Go
             "name": db_user.name, 
             "email": db_user.email, 
             "avatar_url": db_user.avatar_url, 
-            "role": db_user.role if hasattr(db_user, 'role') else "user"
+            "role": db_user.role if hasattr(db_user, 'role') else "user",
+            "provider": db_user.provider
         }
     }
 
@@ -80,19 +81,20 @@ async def google_login(request: Request, response: Response, payload: schemas.Go
 @router.post("/clio")
 async def clio_login(request: Request, response: Response, payload: schemas.ClioLoginRequest, db: AsyncSession = Depends(get_db)):
     client_ip = request.client.host
+    http_client = request.app.state.http_client
     location_str = "Unknown"
     location_source = "Unknown"
     
     if payload.latitude and payload.longitude:
-        location_str = await LocationService.get_coord_location(payload.latitude, payload.longitude)
+        location_str = await LocationService.get_coord_location(payload.latitude, payload.longitude, http_client)
         location_source = "GPS (Precise)"
         
     if not location_str or location_str == "Unknown":
-        ip_data = await LocationService.get_ip_location_data(client_ip)
+        ip_data = await LocationService.get_ip_location_data(client_ip, http_client)
         location_str = ip_data["location"]
         location_source = "IP (Approximate)"
 
-    auth_service = AuthService(db)
+    auth_service = AuthService(db, http_client)
     access_token, refresh_token, db_user = await auth_service.authenticate_clio(
         code=payload.code, 
         client_ip=client_ip, 
@@ -110,7 +112,8 @@ async def clio_login(request: Request, response: Response, payload: schemas.Clio
             "name": db_user.name, 
             "email": db_user.email, 
             "avatar_url": db_user.avatar_url, 
-            "role": db_user.role if hasattr(db_user, 'role') else "user"
+            "role": db_user.role if hasattr(db_user, 'role') else "user",
+            "provider": db_user.provider
         }
     }
 

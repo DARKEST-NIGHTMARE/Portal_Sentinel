@@ -164,7 +164,8 @@ class AuthService:
             )
             print(f"Created New Clio User: {email}")
         
-        # Upsert ClioConnection
+        await self.db.refresh(db_user, ["clio_connection"])
+        
         if not db_user.clio_connection:
             clio_conn = ClioConnection(
                 user_id=db_user.id,

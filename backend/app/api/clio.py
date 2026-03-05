@@ -5,6 +5,7 @@ from ..core.dependencies import get_clio_user, get_current_user, get_http_client
 import httpx
 from ..models import User
 from ..services.clio_service import ClioService
+from ..schemas import BookSlotRequest
 
 router = APIRouter(prefix="/api/clio", tags=["clio"])
 
@@ -53,3 +54,20 @@ async def get_clio_communications(
 ):
     clio_service = ClioService(db, http_client)
     return await clio_service.get_communications(current_user)
+
+@router.post("/book-slot")
+async def book_slot_endpoint(
+    request: BookSlotRequest,
+    current_user: User = Depends(get_clio_user),
+    db: AsyncSession = Depends(get_db),
+    http_client: httpx.AsyncClient = Depends(get_http_client)
+):
+    clio_service = ClioService(db, http_client)
+    return await clio_service.book_slot(
+        current_user,
+        request.date,
+        request.start_time,
+        request.end_time,
+        request.summary,
+        request.timezone_offset
+    )

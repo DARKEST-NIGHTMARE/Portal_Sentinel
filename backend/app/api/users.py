@@ -37,7 +37,8 @@ async def get_user_info(
         "name": db_user.name,
         "email": db_user.email,
         "avatar_url": db_user.avatar_url,  
-        "role": db_user.role
+        "role": db_user.role,
+        "provider": db_user.provider
     }
 
 @router.put("/{user_id}/role")
