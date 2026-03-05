@@ -52,10 +52,6 @@ const ClioDashboard = () => {
     ];
 
     const renderTable = () => {
-        if (loading) {
-            return <div className={styles.loadingSpinner}>Loading data...</div>;
-        }
-
         switch (activeTab) {
             case "matters":
                 return matters.length === 0 ? (
@@ -171,10 +167,10 @@ const ClioDashboard = () => {
                                                     <button key={i} className={styles.slotChip}
                                                         onClick={() => {
                                                             dispatch(clearBookingResult());
-                                                            dispatch(bookSlot({ date: bookForm.date, start_time: s.start, end_time: s.end, summary: bookForm.summary }));
-                                                            setBookForm({ ...bookForm, start_time: s.start, end_time: s.end });
+                                                            dispatch(bookSlot({ date: s.date || bookForm.date, start_time: s.start, end_time: s.end, summary: bookForm.summary }));
+                                                            setBookForm({ ...bookForm, date: s.date || bookForm.date, start_time: s.start, end_time: s.end });
                                                         }}>
-                                                        {s.start} – {s.end}
+                                                        {s.date && s.date !== bookForm.date ? `${s.date} ` : ""}{s.start} – {s.end}
                                                     </button>
                                                 ))}
                                             </div>

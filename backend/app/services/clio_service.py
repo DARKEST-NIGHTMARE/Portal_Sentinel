@@ -198,36 +198,72 @@ class ClioService:
             return {"booked": True, "event": event}
 
         # Conflict found — compute free slots (9AM-6PM, 30min minimum) in local requested time
-        work_start = datetime.fromisoformat(f"{date_str}T09:00:00{timezone_offset}")
-        work_end = datetime.fromisoformat(f"{date_str}T18:00:00{timezone_offset}")
-        min_slot = timedelta(minutes=30)
+        from datetime import timezone
+        
+        async def fetch_and_compute_slots(check_date_str, check_busy=None):
+            if check_busy is None:
+                evs = await self.get_events_for_date(user, check_date_str, timezone_offset)
+                b = []
+                for ev in evs:
+                    if ev.get("all_day"): continue
+                    s_tz = datetime.fromisoformat(ev["start_at"].replace("Z", "+00:00")).astimezone(req_start.tzinfo)
+                    e_tz = datetime.fromisoformat(ev["end_at"].replace("Z", "+00:00")).astimezone(req_start.tzinfo)
+                    b.append((s_tz, e_tz))
+                b.sort(key=lambda x: x[0])
+                check_busy = b
 
-        merged = []
-        for start, end in busy:
-            start = max(start, work_start)
-            end = min(end, work_end)
-            if start >= end:
-                continue
-            if merged and start <= merged[-1][1]:
-                merged[-1] = (merged[-1][0], max(merged[-1][1], end))
-            else:
-                merged.append((start, end))
+            w_start = datetime.fromisoformat(f"{check_date_str}T09:00:00{timezone_offset}")
+            w_end = datetime.fromisoformat(f"{check_date_str}T18:00:00{timezone_offset}")
+            
+            # Prevent suggesting slots that have already passed in local time
+            now_local = datetime.now(timezone.utc).astimezone(req_start.tzinfo)
+            if w_start < now_local:
+                # Snap 'now' to next 30 min boundary
+                minutes = now_local.minute
+                if 0 < minutes <= 30:
+                    snapped = now_local.replace(minute=30, second=0, microsecond=0)
+                elif minutes > 30:
+                    snapped = now_local + timedelta(hours=1)
+                    snapped = snapped.replace(minute=0, second=0, microsecond=0)
+                else:
+                    snapped = now_local.replace(second=0, microsecond=0)
+                w_start = max(w_start, snapped)
 
-        # Find gaps
-        free_slots = []
-        cursor = work_start
-        for b_start, b_end in merged:
-            if b_start - cursor >= min_slot:
-                free_slots.append({
+            min_slot = timedelta(minutes=30)
+            merged = []
+            for s, e in check_busy:
+                s = max(s, w_start)
+                e = min(e, w_end)
+                if s >= e: continue
+                if merged and s <= merged[-1][1]:
+                    merged[-1] = (merged[-1][0], max(merged[-1][1], e))
+                else:
+                    merged.append((s, e))
+
+            slots = []
+            cursor = w_start
+            for bs, be in merged:
+                if bs - cursor >= min_slot:
+                    slots.append({
+                        "date": check_date_str,
+                        "start": cursor.strftime("%H:%M"),
+                        "end": bs.strftime("%H:%M"),
+                    })
+                cursor = max(cursor, be)
+            if w_end - cursor >= min_slot:
+                slots.append({
+                    "date": check_date_str,
                     "start": cursor.strftime("%H:%M"),
-                    "end": b_start.strftime("%H:%M"),
+                    "end": w_end.strftime("%H:%M"),
                 })
-            cursor = max(cursor, b_end)
-        if work_end - cursor >= min_slot:
-            free_slots.append({
-                "start": cursor.strftime("%H:%M"),
-                "end": work_end.strftime("%H:%M"),
-            })
+            return slots
+
+        free_slots = await fetch_and_compute_slots(date_str, busy)
+        
+        # If no slots are available today (due to time passed or fully booked) query the next day
+        if not free_slots:
+            next_day_date = (req_start + timedelta(days=1)).strftime("%Y-%m-%d")
+            free_slots = await fetch_and_compute_slots(next_day_date)
 
         return {
             "booked": False,
