@@ -1,7 +1,7 @@
 .tabBar {
     display: flex;
     gap: 0;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 2px solid #334155;
     margin-bottom: 1.5rem;
 }
 
@@ -10,22 +10,24 @@
     background: none;
     border: none;
     border-bottom: 3px solid transparent;
-    color: #718096;
+    color: #9ca3af;
     font-weight: 600;
     font-size: 0.9rem;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s ease;
     margin-bottom: -2px;
 }
 
 .tab:hover {
-    color: #4a5568;
-    background: #f7fafc;
+    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.05);
+    text-shadow: 0 0 8px rgba(0, 191, 255, 0.3);
 }
 
 .tabActive {
-    color: #5a67d8;
-    border-bottom-color: #5a67d8;
+    color: #00bfff;
+    border-bottom-color: #00bfff;
+    text-shadow: 0 0 10px rgba(0, 191, 255, 0.4);
 }
 
 .tabContent {
@@ -41,14 +43,14 @@
 
 .headerRow h2 {
     margin: 0;
-    color: #2d3748;
+    color: #f1f5f9;
     font-size: 1.25rem;
 }
 
 .errorBanner {
-    background: #fff5f5;
-    color: #c53030;
-    border: 1px solid #feb2b2;
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
     border-radius: 8px;
     padding: 12px 16px;
     margin-bottom: 1rem;
@@ -71,7 +73,7 @@
 .emptyState {
     text-align: center;
     padding: 3rem 1rem;
-    color: #a0aec0;
+    color: #9ca3af;
 }
 
 .emptyState p {
@@ -82,22 +84,22 @@
 .loadingSpinner {
     text-align: center;
     padding: 3rem;
-    color: #718096;
+    color: #9ca3af;
     font-weight: 600;
 }
 
 .statusOpen {
-    color: #2f855a;
+    color: #34d399;
     font-weight: 600;
 }
 
 .statusClosed {
-    color: #c53030;
+    color: #f87171;
     font-weight: 600;
 }
 
 .statusPending {
-    color: #c05621;
+    color: #fbbf24;
     font-weight: 600;
 }
 
@@ -106,21 +108,28 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: #718096;
+    color: #9ca3af;
     font-size: 0.85rem;
 }
 
 .bookingForm {
-    background: #f7fafc;
-    border: 1px solid #e2e8f0;
+    background: #1e293b;
+    border: 1px solid #334155;
     border-radius: 12px;
     padding: 1.25rem;
     margin-bottom: 1.5rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    animation: fadeInUp 0.4s ease-out;
+}
+
+.bookingForm:hover {
+    border-color: rgba(0, 191, 255, 0.25);
+    box-shadow: 0 4px 15px rgba(0, 191, 255, 0.08);
 }
 
 .bookingTitle {
     margin: 0 0 1rem 0;
-    color: #2d3748;
+    color: #f1f5f9;
     font-size: 1.1rem;
 }
 
@@ -135,7 +144,7 @@
     display: block;
     font-size: 0.8rem;
     font-weight: 600;
-    color: #718096;
+    color: #9ca3af;
     margin-bottom: 4px;
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -144,34 +153,39 @@
 .formField input {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #374151;
+    background-color: #0f172a;
     border-radius: 8px;
     font-size: 0.9rem;
-    color: #2d3748;
-    transition: border-color 0.2s;
+    color: #e2e8f0;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
     box-sizing: border-box;
 }
 
 .formField input:focus {
     outline: none;
-    border-color: #5a67d8;
-    box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.1);
+    border-color: #00bfff;
+    box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.2),
+                0 0 12px rgba(0, 191, 255, 0.1);
 }
 
 .btnBook {
-    background: linear-gradient(to right, #667eea, #764ba2);
-    color: white;
+    background: linear-gradient(135deg, #00bfff, #38b2ac, #00bfff);
+    background-size: 300% 300%;
+    color: #020617;
     border: none;
     padding: 10px 24px;
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    animation: shimmer 3s ease infinite;
 }
 
 .btnBook:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 191, 255, 0.4),
+                0 0 12px rgba(56, 178, 172, 0.2);
 }
 
 .btnBook:disabled {
@@ -180,9 +194,9 @@
 }
 
 .bookingSuccess {
-    background: #f0fff4;
-    color: #2f855a;
-    border: 1px solid #9ae6b4;
+    background: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
     border-radius: 8px;
     padding: 12px 16px;
     margin-top: 1rem;
@@ -190,23 +204,23 @@
 }
 
 .bookingConflict {
-    background: #fffaf0;
-    border: 1px solid #fbd38d;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
     border-radius: 8px;
     padding: 12px 16px;
     margin-top: 1rem;
 }
 
 .conflictMsg {
-    color: #c05621;
+    color: #fbbf24;
     font-weight: 600;
     margin: 0 0 8px 0;
 }
 
 .conflictChip {
     display: inline-block;
-    background: #fed7d7;
-    color: #9b2c2c;
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
     padding: 2px 10px;
     border-radius: 12px;
     font-size: 0.8rem;
@@ -222,22 +236,72 @@
 }
 
 .slotChip {
-    background: white;
-    border: 2px solid #9ae6b4;
-    color: #2f855a;
+    background: transparent;
+    border: 2px solid #34d399;
+    color: #34d399;
     padding: 6px 14px;
     border-radius: 20px;
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 }
 
 .slotChip:hover {
-    background: #2f855a;
+    background: #10b981;
     color: white;
-    border-color: #2f855a;
+    border-color: #10b981;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3),
+                0 0 8px rgba(16, 185, 129, 0.15);
+}
+
+.suggestedSection, .availabilitySection {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px dashed #334155;
+}
+
+.sectionTitle {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #9ca3af;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.freeBlockChip {
+    background: transparent;
+    border: 2px solid #38bdf8;
+    color: #38bdf8;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.freeBlockChip:hover {
+    background: rgba(56, 189, 248, 0.1);
+    border-color: #0ea5e9;
+    box-shadow: 0 3px 10px rgba(14, 165, 233, 0.3),
+                0 0 6px rgba(56, 189, 248, 0.2);
     transform: translateY(-1px);
+}
+
+.chipLabel {
+    font-size: 0.7rem;
+    background: #10b981;
+    color: white;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
 }
 
 .accessDenied {
@@ -246,10 +310,10 @@
 }
 
 .accessDenied h2 {
-    color: #c53030;
+    color: #ef4444;
     margin-bottom: 0.5rem;
 }
 
 .accessDenied p {
-    color: #718096;
+    color: #9ca3af;
 }

@@ -1,9 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
 
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
-  background-color: #f7fafc;
+  font-family: 'Poppins', 'Inter', sans-serif;
+  background-color: #0d1117;
+  color: #e2e8f0;
 }
 
 .app-container {
@@ -11,9 +13,29 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #020617 100%);
   background-size: 400% 400%;
-  animation: gradientBG 15s ease infinite;
+  animation: gradientBG 20s ease infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.app-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(0, 191, 255, 0.08) 1px, transparent 1px),
+    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    radial-gradient(circle at 50% 50%, rgba(0, 191, 255, 0.05) 2px, transparent 2px),
+    radial-gradient(circle at 10% 80%, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    radial-gradient(circle at 90% 20%, rgba(0, 191, 255, 0.06) 1px, transparent 1px);
+  background-size: 100px 100px, 150px 150px, 200px 200px, 120px 120px, 180px 180px;
+  animation: ambientFloat 12s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .app-container.logged-in {
@@ -21,17 +43,17 @@ body {
 }
 
 @keyframes gradientBG {
-  0% {
-    background-position: 0% 50%;
-  }
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
 
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
+/* Gradient text utility — inspired by dark theme */
+.gradient-text {
+  background: linear-gradient(135deg, #00bfff, #e2e8f0, #38b2ac);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .input-field {
@@ -52,4 +74,62 @@ body {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(0, 191, 255, 0.1); }
+  50% { box-shadow: 0 0 20px rgba(0, 191, 255, 0.3), 0 0 40px rgba(56, 178, 172, 0.15); }
+}
+
+@keyframes ambientFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes glowBorder {
+  0%, 100% { border-color: rgba(0, 191, 255, 0.2); }
+  50% { border-color: rgba(0, 191, 255, 0.6); }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }

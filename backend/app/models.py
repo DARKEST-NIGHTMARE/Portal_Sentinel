@@ -77,3 +77,11 @@ class SecurityEvent(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user = relationship("User", backref="security_logs")
+
+class OTPCode(Base):
+    __tablename__ = "otp_codes"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    code = Column(String(6), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    user = relationship("User", backref="otp_codes")

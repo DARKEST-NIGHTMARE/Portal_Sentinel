@@ -1,10 +1,13 @@
+import random
+from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete
 from ..core import dependencies
 from ..repositories.user_repo import UserRepository
 from ..repositories.session_repo import SessionRepository
 from ..services.security_service import SecurityService
-from ..models import User, EventType, ClioConnection
+from ..models import User, EventType, ClioConnection, OTPCode
 import httpx
 from ..core.config import settings
 
@@ -50,7 +53,8 @@ class AuthService:
             )
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        return await self._finalize_login(db_user, client_ip, location_str, location_source, lat, lon, device_info)
+        # Return user for 2FA step — do NOT finalize login yet
+        return db_user
 
     async def authenticate_google(self, code: str, client_ip: str, location_str: str, location_source: str, lat: float, lon: float, device_info: str):
         token_url = "https://oauth2.googleapis.com/token"
@@ -103,7 +107,20 @@ class AuthService:
         print("Sending to Clio:", {k: v if k != "client_secret" else "REDACTED" for k, v in token_data.items()})
         print("Redirect URI in Config:", settings.clio_redirect_uri)
         
-        token_res = await self.http_client.post(token_url, data=token_data)
+        import asyncio
+        import httpx
+        
+        token_res = None
+        for attempt in range(3):
+            try:
+                token_res = await self.http_client.post(token_url, data=token_data)
+                break
+            except httpx.RequestError as e:
+                print(f"Attempt {attempt + 1}: Clio Token Request Failed with {e.__class__.__name__}")
+                if attempt == 2:
+                    raise HTTPException(status_code=504, detail="Clio OAuth Failed: Connection Timeout / Network Error")
+                await asyncio.sleep(2 ** attempt)  # Exponential backoff: 1s, 2s
+
         if token_res.status_code != 200:
             print(f"Clio Token Error ({token_res.status_code}):", token_res.text)
             raise HTTPException(status_code=400, detail=f"Clio OAuth Failed: {token_res.text}")
@@ -112,15 +129,23 @@ class AuthService:
         access_token = token_json.get("access_token")
         
         # Fetch user info from Clio
-        #endpoint is who_am_i
-        user_info_res = await self.http_client.get(
-            f"{base_url}/api/v4/users/who_am_i",
-            headers={
-                "Authorization": f"Bearer {access_token}",
-                "Accept": "application/json"
-            }
-        )
-        
+        user_info_res = None
+        for attempt in range(3):
+            try:
+                user_info_res = await self.http_client.get(
+                    f"{base_url}/api/v4/users/who_am_i",
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Accept": "application/json"
+                    }
+                )
+                break
+            except httpx.RequestError as e:
+                print(f"Attempt {attempt + 1}: Clio User Info Request Failed with {e.__class__.__name__}")
+                if attempt == 2:
+                    raise HTTPException(status_code=504, detail="Failed to fetch Clio user info: Connection Timeout")
+                await asyncio.sleep(2 ** attempt)
+
         if user_info_res.status_code != 200:
             print(f"Clio User Info Error ({user_info_res.status_code}):", user_info_res.text)
             raise HTTPException(status_code=400, detail=f"Failed to fetch Clio user info: {user_info_res.text}")
@@ -256,3 +281,47 @@ class AuthService:
             password_hash=hashed_password
         )
         return new_user
+
+    async def generate_otp(self, user_id: int) -> str:
+        """Generate a 6-digit OTP, store it, and return the code."""
+        
+        await self.db.execute(delete(OTPCode).where(OTPCode.user_id == user_id))
+
+        code = f"{random.randint(0, 999999):06d}"
+        otp = OTPCode(
+            user_id=user_id,
+            code=code,
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=5)
+        )
+        self.db.add(otp)
+        await self.db.commit()
+        return code
+
+    async def verify_otp(self, user_id: int, code: str):
+        """Validate the OTP. Returns the User on success."""
+        stmt = select(OTPCode).where(OTPCode.user_id == user_id, OTPCode.code == code)
+        result = await self.db.execute(stmt)
+        otp = result.scalars().first()
+
+        if not otp:
+            raise HTTPException(status_code=401, detail="Invalid OTP code")
+
+        if otp.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+            await self.db.execute(delete(OTPCode).where(OTPCode.user_id == user_id))
+            await self.db.commit()
+            raise HTTPException(status_code=401, detail="OTP has expired. Please login again.")
+
+        await self.db.execute(delete(OTPCode).where(OTPCode.user_id == user_id))
+        await self.db.commit()
+
+        db_user = await self.user_repo.get_by_id(user_id)
+        if not db_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return db_user
+
+    async def finalize_login_for_user(self, user_id: int, client_ip: str, location_str: str, location_source: str, lat, lon, device_info: str):
+        """Public wrapper to finalize login after 2FA verification."""
+        db_user = await self.user_repo.get_by_id(user_id)
+        if not db_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return await self._finalize_login(db_user, client_ip, location_str, location_source, lat, lon, device_info)

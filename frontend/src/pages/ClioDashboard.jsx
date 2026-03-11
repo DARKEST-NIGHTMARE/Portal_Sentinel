@@ -159,22 +159,46 @@ const ClioDashboard = () => {
                                     <p><strong>Conflicts with:</strong> {bookingResult.conflicts?.map((c, i) => (
                                         <span key={i} className={styles.conflictChip}>{c.start} – {c.end}</span>
                                     ))}</p>
-                                    {bookingResult.available_slots?.length > 0 && (
-                                        <div>
-                                            <p><strong>Available slots:</strong></p>
-                                            <div className={styles.slotChips}>
-                                                {bookingResult.available_slots.map((s, i) => (
-                                                    <button key={i} className={styles.slotChip}
-                                                        onClick={() => {
-                                                            dispatch(clearBookingResult());
-                                                            dispatch(bookSlot({ date: s.date || bookForm.date, start_time: s.start, end_time: s.end, summary: bookForm.summary }));
-                                                            setBookForm({ ...bookForm, date: s.date || bookForm.date, start_time: s.start, end_time: s.end });
-                                                        }}>
-                                                        {s.date && s.date !== bookForm.date ? `${s.date} ` : ""}{s.start} – {s.end}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
+                                    {(bookingResult.suggestions?.length > 0 || bookingResult.free_blocks?.length > 0) && (
+                                        <>
+                                            {bookingResult.suggestions?.length > 0 && (
+                                                <div className={styles.suggestedSection}>
+                                                    <p className={styles.sectionTitle}>✨ Suggested Slots</p>
+                                                    <div className={styles.slotChips}>
+                                                        {bookingResult.suggestions.map((s, i) => (
+                                                            <button key={i} className={styles.slotChip}
+                                                                onClick={() => {
+                                                                    dispatch(clearBookingResult());
+                                                                    dispatch(bookSlot({ date: s.date || bookForm.date, start_time: s.start, end_time: s.end, summary: bookForm.summary }));
+                                                                    setBookForm({ ...bookForm, date: s.date || bookForm.date, start_time: s.start, end_time: s.end });
+                                                                }}>
+                                                                {s.date && s.date !== bookForm.date ? `${s.date} ` : ""}{s.start} – {s.end}
+                                                                {s.label && <span className={styles.chipLabel}>{s.label}</span>}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {bookingResult.free_blocks?.length > 0 && (
+                                                <div className={styles.availabilitySection}>
+                                                    <p className={styles.sectionTitle}>🕒 Total Availability</p>
+                                                    <div className={styles.slotChips}>
+                                                        {bookingResult.free_blocks.map((s, i) => (
+                                                            <button key={i} className={styles.freeBlockChip}
+                                                                onClick={() => {
+                                                                    setBookForm({ ...bookForm, date: s.date, start_time: s.start, end_time: s.end });
+                                                                }}>
+                                                                {s.date && s.date !== bookForm.date ? `${s.date} ` : ""}{s.start} – {s.end}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <p style={{ fontSize: '0.75rem', color: '#718096', marginTop: '8px' }}>
+                                                        Click a block above to manually refine your selection in the form.
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             )}

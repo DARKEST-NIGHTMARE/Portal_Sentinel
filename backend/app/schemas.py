@@ -79,3 +79,10 @@ class UserSessionOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class Verify2FARequest(BaseModel):
+    user_id: int
+    code: str
+
+class ResendOTPRequest(BaseModel):
+    user_id: int

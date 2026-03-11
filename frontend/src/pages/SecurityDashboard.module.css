@@ -1,3 +1,9 @@
+.dashboardContainer {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
 .securityHeader {
     display: flex;
     justify-content: space-between;
@@ -25,20 +31,52 @@
 }
 
 .dashboardCard {
-    background: white;
+    background: #1e293b;
     border-radius: 12px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
     padding: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #334155;
+    animation: fadeInUp 0.5s ease-out both;
+    transition: transform 0.25s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboardCard::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #00bfff, #e2e8f0, #38b2ac);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.dashboardCard:hover::after {
+    opacity: 1;
+}
+
+.dashboardCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.5),
+                0 0 25px rgba(0, 191, 255, 0.12);
+    border-color: rgba(0, 191, 255, 0.3);
 }
 
 .dashboardCard h2 {
     margin-top: 0;
-    color: #4a5568;
+    color: #f1f5f9;
     font-size: 1.1rem;
-    border-bottom: 2px solid #edf2f7;
+    border-bottom: 2px solid #334155;
     padding-bottom: 12px;
     margin-bottom: 15px;
+    transition: color 0.2s ease;
+}
+
+.dashboardCard:hover h2 {
+    color: #00bfff;
 }
 
 .alertList {
@@ -53,23 +91,41 @@
     padding: 12px;
     border-radius: 8px;
     font-size: 0.85rem;
-    border-left: 4px solid #e53e3e;
-    background: #fff5f5;
-    color: #4a5568;
+    border-left: 4px solid #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    color: #f1f5f9;
+    animation: slideInLeft 0.3s ease-out both;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.alertItem:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 .alertItem strong {
-    color: #c53030;
+    color: #fca5a5;
 }
 
 .textCenterMuted {
     text-align: center;
-    color: #a0aec0;
+    color: #9ca3af;
     padding: 20px 0;
 }
 
 .alertMeta {
-    color: #718096;
+    color: #6b7280;
     font-size: 0.75rem;
     margin-top: 6px;
 }
@@ -84,12 +140,15 @@
 .filterSelect {
     padding: 8px 12px;
     border-radius: 6px;
-    border: 1px solid #cbd5e0;
+    border: 1px solid #374151;
+    background-color: #0f172a;
     outline: none;
     font-family: inherit;
-    color: #4a5568;
+    color: #e2e8f0;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .filterSelect:focus {
-    border-color: #667eea;
+    border-color: #00bfff;
+    box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.2);
 }

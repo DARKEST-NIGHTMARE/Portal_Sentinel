@@ -5,35 +5,42 @@
 }
 
 .empTable th {
-    background-color: #f7fafc;
-    color: #4a5568;
+    background-color: #0f172a;
+    color: #9ca3af;
     font-size: 0.8rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     padding: 12px 16px;
     text-align: left;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 2px solid #334155;
     cursor: pointer;
     user-select: none;
     white-space: nowrap;
 }
 
 .empTable th:hover {
-    background-color: #edf2f7;
+    background-color: #1e293b;
 }
 
 .empTable td {
     padding: 12px 16px;
-    border-bottom: 1px solid #edf2f7;
-    color: #2d3748;
+    border-bottom: 1px solid #1e293b;
+    color: #e2e8f0;
     font-size: 0.92rem;
     vertical-align: middle;
 }
 
+.empTable tbody tr {
+    animation: fadeIn 0.3s ease-out both;
+    transition: background-color 0.15s ease, border-left 0.15s ease;
+    border-left: 3px solid transparent;
+}
+
 .empTable tbody tr:hover {
-    background-color: #f7fafc;
-    transition: background 0.15s ease;
+    background-color: rgba(0, 191, 255, 0.05);
+    border-left: 3px solid #00bfff;
+    box-shadow: inset 0 0 0 1px rgba(0, 191, 255, 0.1);
 }
 
 .btnDelete {
@@ -60,15 +67,15 @@
     align-items: center;
     margin-top: 25px;
     padding-top: 20px;
-    border-top: 2px solid #edf2f7;
+    border-top: 2px solid #1e293b;
     font-weight: 600;
-    color: #4a5568;
+    color: #e2e8f0;
 }
 
 .paginationBtn {
-    background: white;
-    border: 2px solid #e2e8f0;
-    color: #4a5568;
+    background: transparent;
+    border: 1px solid #374151;
+    color: #e2e8f0;
     padding: 8px 20px;
     border-radius: 8px;
     font-weight: 600;
@@ -77,8 +84,11 @@
 }
 
 .paginationBtn:hover:not(:disabled) {
-    border-color: #667eea;
-    color: #667eea;
+    border-color: #00bfff;
+    color: #00bfff;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba(0, 191, 255, 0.2),
+                0 0 5px rgba(0, 191, 255, 0.1);
 }
 
 .paginationBtn:disabled {

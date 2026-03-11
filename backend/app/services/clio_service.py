@@ -44,7 +44,6 @@ class ClioService:
         new_access_token = token_json.get("access_token")
         new_refresh_token = token_json.get("refresh_token")
 
-        # Update database
         conn.access_token = new_access_token
         conn.refresh_token = new_refresh_token
         await self.db.commit()
@@ -68,15 +67,29 @@ class ClioService:
 
         base_url = conn.base_url or settings.clio_base_url
         url = f"{base_url}{path}"
-        res = await self.http_client.request(method, url, **kwargs)
         
-        # Catch 401 and try to refresh once
-        if res.status_code == 401:
-            print(f"Token expired for {user.email}, attempting refresh...")
-            token = await self.refresh_clio_token(user)
-            headers["Authorization"] = f"Bearer {token}"
-            kwargs["headers"] = headers
-            res = await self.http_client.request(method, url, **kwargs)
+        import asyncio
+        import httpx
+        
+        res = None
+        for attempt in range(3):
+            try:
+                res = await self.http_client.request(method, url, **kwargs)
+                
+                # Catch 401 and try to refresh once (only on the first attempt to avoid loop)
+                if res.status_code == 401 and attempt == 0:
+                    print(f"Token expired for {user.email}, attempting refresh...")
+                    token = await self.refresh_clio_token(user)
+                    headers["Authorization"] = f"Bearer {token}"
+                    kwargs["headers"] = headers
+                    res = await self.http_client.request(method, url, **kwargs)
+                break
+                
+            except httpx.RequestError as e:
+                print(f"Attempt {attempt + 1}: Clio Service Request to {path} Failed with {e.__class__.__name__}")
+                if attempt == 2:
+                    raise HTTPException(status_code=504, detail="Clio API Error: Connection Timeout / Network Error")
+                await asyncio.sleep(2 ** attempt)
 
         if res.status_code >= 400:
             print(f"Clio API Error ({res.status_code}) on {path}: {res.text}")
@@ -111,6 +124,7 @@ class ClioService:
     async def get_events_for_date(self, user: User, date_str: str, timezone_offset: str = "+00:00"):
         """Fetch all calendar events for a specific date considering the user's local timezone."""
         from datetime import datetime, timezone
+        #local time 00:00 to 23:59 for fetching from clio
         start_local = datetime.fromisoformat(f"{date_str}T00:00:00{timezone_offset}")
         end_local = datetime.fromisoformat(f"{date_str}T23:59:59{timezone_offset}")
         
@@ -175,7 +189,7 @@ class ClioService:
             ev_start_str = ev["start_at"].replace("Z", "+00:00")
             ev_end_str = ev["end_at"].replace("Z", "+00:00")
             
-            # Parse existing events and convert them to the requested timezone for accurate comparison
+            # Parse existing events and convert them to the requested timezone  comparison
             ev_start = datetime.fromisoformat(ev_start_str).astimezone(req_start.tzinfo)
             ev_end = datetime.fromisoformat(ev_end_str).astimezone(req_start.tzinfo)
             busy.append((ev_start, ev_end))
@@ -215,16 +229,13 @@ class ClioService:
             w_start = datetime.fromisoformat(f"{check_date_str}T09:00:00{timezone_offset}")
             w_end = datetime.fromisoformat(f"{check_date_str}T18:00:00{timezone_offset}")
             
-            # Prevent suggesting slots that have already passed in local time
             now_local = datetime.now(timezone.utc).astimezone(req_start.tzinfo)
             if w_start < now_local:
-                # Snap 'now' to next 30 min boundary
                 minutes = now_local.minute
                 if 0 < minutes <= 30:
                     snapped = now_local.replace(minute=30, second=0, microsecond=0)
                 elif minutes > 30:
-                    snapped = now_local + timedelta(hours=1)
-                    snapped = snapped.replace(minute=0, second=0, microsecond=0)
+                    snapped = (now_local + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
                 else:
                     snapped = now_local.replace(second=0, microsecond=0)
                 w_start = max(w_start, snapped)
@@ -232,42 +243,64 @@ class ClioService:
             min_slot = timedelta(minutes=30)
             merged = []
             for s, e in check_busy:
-                s = max(s, w_start)
-                e = min(e, w_end)
+                s = max(s, w_start); e = min(e, w_end)
                 if s >= e: continue
                 if merged and s <= merged[-1][1]:
                     merged[-1] = (merged[-1][0], max(merged[-1][1], e))
                 else:
                     merged.append((s, e))
 
-            slots = []
+            free_blocks = []
             cursor = w_start
             for bs, be in merged:
                 if bs - cursor >= min_slot:
-                    slots.append({
+                    free_blocks.append({
                         "date": check_date_str,
                         "start": cursor.strftime("%H:%M"),
                         "end": bs.strftime("%H:%M"),
                     })
                 cursor = max(cursor, be)
             if w_end - cursor >= min_slot:
-                slots.append({
+                free_blocks.append({
                     "date": check_date_str,
                     "start": cursor.strftime("%H:%M"),
                     "end": w_end.strftime("%H:%M"),
                 })
-            return slots
 
-        free_slots = await fetch_and_compute_slots(date_str, busy)
+            # Generate discrete 1h and 2h suggestions from each free block
+            suggestions = []
+            for block in free_blocks:
+                b_start = datetime.fromisoformat(f"{block['date']}T{block['start']}:00{timezone_offset}")
+                b_end = datetime.fromisoformat(f"{block['date']}T{block['end']}:00{timezone_offset}")
+                duration = b_end - b_start
+
+                if duration >= timedelta(hours=1):
+                    suggestions.append({
+                        "date": block['date'],
+                        "start": b_start.strftime("%H:%M"),
+                        "end": (b_start + timedelta(hours=1)).strftime("%H:%M"),
+                        "label": "1 Hour"
+                    })
+                if duration >= timedelta(hours=2):
+                    suggestions.append({
+                        "date": block['date'],
+                        "start": b_start.strftime("%H:%M"),
+                        "end": (b_start + timedelta(hours=2)).strftime("%H:%M"),
+                        "label": "2 Hours"
+                    })
+            
+            return {"free_blocks": free_blocks, "suggestions": suggestions}
+
+        result = await fetch_and_compute_slots(date_str, busy)
         
-        # If no slots are available today (due to time passed or fully booked) query the next day
-        if not free_slots:
+        if not result["suggestions"] and not result["free_blocks"]:
             next_day_date = (req_start + timedelta(days=1)).strftime("%Y-%m-%d")
-            free_slots = await fetch_and_compute_slots(next_day_date)
+            result = await fetch_and_compute_slots(next_day_date)
 
         return {
             "booked": False,
             "message": "Requested slot conflicts with existing events",
             "conflicts": conflicts,
-            "available_slots": free_slots,
+            "suggestions": result["suggestions"],
+            "free_blocks": result["free_blocks"],
         }
