@@ -29,7 +29,8 @@
 .btnGoogle:hover {
     background: rgba(255, 255, 255, 0.05);
     border-color: #00bfff;
-    box-shadow: 0 4px 15px rgba(0, 191, 255, 0.12);
+    box-shadow: 0 4px 15px rgba(0, 191, 255, 0.25),
+                0 0 10px rgba(0, 191, 255, 0.15);
 }
 
 .btnJwt {
@@ -55,7 +56,8 @@
 }
 
 .btnJwt:hover {
-    box-shadow: 0 6px 25px rgba(0, 191, 255, 0.45),
+    box-shadow: 0 6px 25px rgba(0, 191, 255, 0.55),
+                0 0 20px rgba(0, 191, 255, 0.35),
                 0 0 15px rgba(255, 255, 255, 0.25);
 }
 
@@ -74,7 +76,9 @@
 .btnAdd:hover {
     background: #14b8a6;
     box-shadow: 0 4px 15px rgba(20, 184, 166, 0.35),
-                0 0 10px rgba(20, 184, 166, 0.15);
+                0 0 10px rgba(0, 191, 255, 0.3),
+                0 0 5px rgba(0, 191, 255, 0.15);
+    border-color: rgba(0, 191, 255, 0.5);
 }
 
 .btnDelete {
@@ -144,8 +148,9 @@
 .btnPromote:hover {
     background-color: #10b981;
     color: white;
-    border-color: #059669;
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+    border-color: #00bfff;
+    box-shadow: 0 0 15px rgba(0, 191, 255, 0.4),
+                0 0 8px rgba(16, 185, 129, 0.3);
 }
 
 .btnDemote {
@@ -163,8 +168,9 @@
 .btnDemote:hover {
     background-color: #f59e0b;
     color: white;
-    border-color: #d97706;
-    box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+    border-color: #00bfff;
+    box-shadow: 0 0 15px rgba(0, 191, 255, 0.4),
+                0 0 8px rgba(245, 158, 11, 0.3);
 }
 
 .btnDemote:disabled {

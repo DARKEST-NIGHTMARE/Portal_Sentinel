@@ -6,8 +6,6 @@ import {
 } from "recharts";
 
 import { securityApi } from "../services/securityApi";
-import { logoutUser } from "../redux/authSlice";
-import Navbar from "../components/layout/Navbar";
 import SecurityMap from "../components/security/SecurityMap";
 import { useNavigate } from "react-router-dom";
 import buttonStyles from "../components/common/Button.module.css";
@@ -33,10 +31,6 @@ const SecurityDashboard = () => {
     const [page, setPage] = useState(0);
     const limit = 10;
     const navigate = useNavigate();
-    const handleLogout = () => {
-        dispatch(logoutUser());
-        navigate("/");
-    }
 
     useEffect(() => {
         const fetchStaticWidgets = async () => {
@@ -179,9 +173,6 @@ const SecurityDashboard = () => {
     }
 
     return (
-        <div className={styles.dashboardContainer}>
-            <Navbar user={user} onLogout={handleLogout} activePage="security" />
-
             <div className={layoutStyles.glassCard}>
                 <div className={styles.securityHeader}>
                     <h1>Security Center</h1>
@@ -406,7 +397,6 @@ const SecurityDashboard = () => {
                     </>
                 )}
             </div>
-        </div>
     );
 };
 

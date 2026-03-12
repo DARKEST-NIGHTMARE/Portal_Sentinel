@@ -1,22 +1,26 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../services/api";
 
-export const loginUser = createAsyncThunk("auth/login", async (creds, { rejectWithValue }) => {
+export const loginUser = createAsyncThunk("auth/login", async (payload, { rejectWithValue }) => {
   try {
-    const res = await api.post("/api/auth/login", creds);
-    return res.data; 
+    const res = await api.post("/api/auth/login", payload);
+    return res.data;
   } catch (err) {
-    return rejectWithValue(err.response?.data?.detail || "Login failed");
+    const detail = err.response?.data?.detail;
+    const errorMsg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? detail[0]?.msg : "Login failed");
+    return rejectWithValue(errorMsg);
   }
 });
 
-export const verifyTwoFactor = createAsyncThunk("auth/verify2fa", async ({ user_id, code }, { rejectWithValue }) => {
+export const verifyTwoFactor = createAsyncThunk("auth/verify2FA", async ({ user_id, code }, { rejectWithValue }) => {
   try {
     const res = await api.post("/api/auth/login/verify-2fa", { user_id, code });
     localStorage.setItem("token", res.data.token);
     return res.data;
   } catch (err) {
-    return rejectWithValue(err.response?.data?.detail || "Verification failed");
+    const detail = err.response?.data?.detail;
+    const errorMsg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? (detail[0]?.msg || "Invalid format") : "Verification failed");
+    return rejectWithValue(errorMsg);
   }
 });
 
@@ -26,7 +30,9 @@ export const verifyTotp = createAsyncThunk("auth/verifyTotp", async ({ user_id, 
     localStorage.setItem("token", res.data.token);
     return res.data;
   } catch (err) {
-    return rejectWithValue(err.response?.data?.detail || "TOTP verification failed");
+    const detail = err.response?.data?.detail;
+    const errorMsg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? detail[0]?.msg : "TOTP verification failed");
+    return rejectWithValue(errorMsg);
   }
 });
 
@@ -56,20 +62,28 @@ export const registerUser = createAsyncThunk(
 export const googleLogin = createAsyncThunk("auth/google", async (payload, { rejectWithValue }) => {
   try {
     const res = await api.post("/api/auth/google", payload);
-    localStorage.setItem("token", res.data.token);
+    if (res.data.token) {
+      localStorage.setItem("token", res.data.token);
+    }
     return res.data;
   } catch (err) {
-    return rejectWithValue("Google Login Failed");
+    const detail = err.response?.data?.detail;
+    const errorMsg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? (detail[0]?.msg || "Google Login Failed") : "Google Login Failed");
+    return rejectWithValue(errorMsg);
   }
 });
 
 export const clioLogin = createAsyncThunk("auth/clio", async (payload, { rejectWithValue }) => {
   try {
     const res = await api.post("/api/auth/clio", payload);
-    localStorage.setItem("token", res.data.token);
+    if (res.data.token) {
+      localStorage.setItem("token", res.data.token);
+    }
     return res.data;
   } catch (err) {
-    return rejectWithValue("Clio Login Failed");
+    const detail = err.response?.data?.detail;
+    const errorMsg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? (detail[0]?.msg || "Clio Login Failed") : "Clio Login Failed");
+    return rejectWithValue(errorMsg);
   }
 });
 
@@ -85,6 +99,17 @@ export const logoutUser = createAsyncThunk("auth/logout", async (_, { dispatch }
     console.error("Logout error:", err);
   } finally {
     dispatch(logout());
+  }
+});
+
+export const disableTotp = createAsyncThunk("auth/disableTotp", async ({ code }, { rejectWithValue }) => {
+  try {
+    const res = await api.post("/api/auth/totp/disable", { code });
+    return res.data;
+  } catch (err) {
+    const detail = err.response?.data?.detail;
+    const errorMsg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? detail[0]?.msg : "Failed to disable TOTP");
+    return rejectWithValue(errorMsg);
   }
 });
 
@@ -155,14 +180,31 @@ const authSlice = createSlice({
 
       .addCase(fetchUser.fulfilled, (state, action) => { state.user = action.payload; })
       .addCase(registerUser.fulfilled, (state) => { state.loading = false; })
-      .addMatcher(
-        (action) => [googleLogin.fulfilled.type, clioLogin.fulfilled.type].includes(action.type),
-        (state, action) => {
+      .addCase(googleLogin.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(googleLogin.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.status === "TOTP_REQUIRED") {
+          state.requiresTotp = true;
+          state.tempUserId = action.payload.user_id;
+        } else {
           state.token = action.payload.token;
           state.user = action.payload.user;
-          state.loading = false;
         }
-      );
+      })
+      .addCase(googleLogin.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
+
+      .addCase(clioLogin.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(clioLogin.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload.status === "TOTP_REQUIRED") {
+          state.requiresTotp = true;
+          state.tempUserId = action.payload.user_id;
+        } else {
+          state.token = action.payload.token;
+          state.user = action.payload.user;
+        }
+      })
+      .addCase(clioLogin.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
   },
 });
 

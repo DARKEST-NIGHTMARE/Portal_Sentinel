@@ -76,6 +76,7 @@
     background: rgba(0, 191, 255, 0.1);
     border-color: #00bfff;
     color: #00bfff;
+    box-shadow: 0 0 15px rgba(0, 191, 255, 0.3);
 }
 
 .formGroup {
@@ -122,7 +123,25 @@
 
 .btnPrimary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 0 20px rgba(0, 191, 255, 0.4);
+    box-shadow: 0 0 25px rgba(0, 191, 255, 0.5),
+                0 0 10px rgba(255, 255, 255, 0.2);
+    filter: brightness(1.2);
+}
+
+.btnDanger {
+    background: linear-gradient(135deg, #f87171, #ef4444);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btnDanger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(248, 113, 113, 0.4);
     filter: brightness(1.1);
 }
 

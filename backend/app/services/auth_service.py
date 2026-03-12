@@ -71,28 +71,39 @@ class AuthService:
         if token_res.status_code != 200:
             print("Google Error:", token_res.text)
             raise HTTPException(status_code=400, detail="Invalid Google Code")
-            
-        access_token = token_res.json().get("access_token")
+        return token_res.json()
+
+    async def _get_google_user_info(self, access_token: str) -> dict:
         user_info_res = await self.http_client.get(
             "https://www.googleapis.com/oauth2/v3/userinfo",
             headers={"Authorization": f"Bearer {access_token}"}
         )
-        user_info = user_info_res.json()
+        user_info_res.raise_for_status() # Raise an exception for bad status codes
+        return user_info_res.json()
 
+    async def authenticate_google(self, code: str, client_ip: str, location_str: str, location_source: str, lat, lon, device_info: str):
+        google_tokens = await self._get_google_tokens(code)
+        access_token = google_tokens.get("access_token")
+        
+        user_info = await self._get_google_user_info(access_token)
         email = user_info.get("email")
         name = user_info.get("name")
-        avatar = user_info.get("picture")
+        picture = user_info.get("picture")
 
         db_user = await self.user_repo.get_by_email(email)
-        
         if not db_user:
-            db_user = await self.user_repo.create(email=email, name=name, avatar_url=avatar, provider="google")
-            print(f"Created New User: {email}")
+            db_user = await self.user_repo.create(
+                email=email,
+                name=name,
+                avatar_url=picture,
+                provider="google"
+            )
         else:
-            await self.user_repo.update(db_user, name=name, avatar_url=avatar)
+            await self.user_repo.update(db_user, name=name, avatar_url=picture)
             print(f"Welcome back: {email}")
-
-        return await self._finalize_login(db_user, client_ip, location_str, location_source, lat, lon, device_info, provider="google")
+        
+        # We return the user. The API layer will decide if TOTP is needed.
+        return db_user
 
     async def authenticate_clio(self, code: str, client_ip: str, location_str: str, location_source: str, lat: float, lon: float, device_info: str):
         base_url = settings.clio_base_url
@@ -208,7 +219,7 @@ class AuthService:
         await self.db.commit()
         print(f"Updated Clio connection for: {email}")
 
-        return await self._finalize_login(db_user, client_ip, location_str, location_source, lat, lon, device_info, provider="clio")
+        return db_user
 
     async def _finalize_login(self, db_user, client_ip, location_str, location_source, lat, lon, device_info, provider="local"):
         await SecurityService.check_suspicious_activity(self.db, db_user.id, client_ip)
@@ -348,4 +359,15 @@ class AuthService:
             raise HTTPException(status_code=401, detail="Invalid verification code")
         
         await self.user_repo.update(db_user, totp_secret=secret, is_totp_enabled=True)
+        return db_user
+    async def disable_totp(self, user_id: int, code: str):
+        db_user = await self.user_repo.get_by_id(user_id)
+        if not db_user or not db_user.is_totp_enabled or not db_user.totp_secret:
+            raise HTTPException(status_code=400, detail="TOTP is not enabled for this account")
+        
+        totp = pyotp.TOTP(db_user.totp_secret)
+        if not totp.verify(code):
+            raise HTTPException(status_code=401, detail="Invalid verification code")
+        
+        await self.user_repo.update(db_user, totp_secret=None, is_totp_enabled=False)
         return db_user

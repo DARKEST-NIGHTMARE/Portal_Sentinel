@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { QRCodeSVG } from 'qrcode.react';
 import axios from 'axios';
-import Navbar from '../components/layout/Navbar';
-import { logoutUser, fetchUser } from '../redux/authSlice';
+import { fetchUser, disableTotp } from '../redux/authSlice';
 import styles from './ProfileSettings.module.css';
 import layoutStyles from '../components/common/Layout.module.css';
 
@@ -19,8 +18,10 @@ const ProfileSettings = () => {
     const [profileMessage, setProfileMessage] = useState({ type: '', text: '' });
 
     const [showTotpSetup, setShowTotpSetup] = useState(false);
+    const [showTotpDisable, setShowTotpDisable] = useState(false);
     const [totpData, setTotpData] = useState({ secret: '', provisioning_uri: '' });
     const [totpCode, setTotpCode] = useState('');
+    const [disableCode, setDisableCode] = useState('');
     const [totpError, setTotpError] = useState('');
     const [totpLoading, setTotpLoading] = useState(false);
 
@@ -83,16 +84,27 @@ const ProfileSettings = () => {
             setTotpLoading(false);
         }
     };
+    const handleDisableTotp = async () => {
+        if (disableCode.length !== 6) return;
+        setTotpLoading(true);
+        setTotpError('');
+        try {
+            await dispatch(disableTotp({ code: disableCode })).unwrap();
+            dispatch(fetchUser());
+            setShowTotpDisable(false);
+            setDisableCode('');
+        } catch (err) {
+            setTotpError(err || 'Failed to disable TOTP.');
+        } finally {
+            setTotpLoading(false);
+        }
+    };
 
     const avatarDisplay = user?.avatar_url 
         ? (user.avatar_url.startsWith('http') ? user.avatar_url : `${API_URL}${user.avatar_url}`)
         : `https://ui-avatars.com/api/?name=${user?.name}`;
 
     return (
-        <div style={{ minHeight: '100vh', paddingBottom: '2rem' }}>
-            <Navbar user={user} onLogout={() => dispatch(logoutUser())} activePage="settings" />
-            
-            <div className={styles.settingsContainer}>
                 <div className={`${styles.settingsCard} ${layoutStyles.glassCard}`}>
                     <div className={styles.settingsHeader}>
                         <h2 className={styles.settingsTitle}>Account Security & Profile</h2>
@@ -204,15 +216,62 @@ const ProfileSettings = () => {
                             )}
 
                             {user?.is_totp_enabled && (
-                                <p style={{color: '#9ca3af', fontSize: '0.9rem', marginTop: '1rem'}}>
-                                    You are using Google Authenticator for enhanced security.
-                                </p>
+                                <div style={{marginTop: '1.5rem'}}>
+                                    {!showTotpDisable ? (
+                                        <>
+                                            <p style={{color: '#9ca3af', fontSize: '0.9rem', marginBottom: '1rem'}}>
+                                                You are using Google Authenticator for enhanced security.
+                                            </p>
+                                            <button 
+                                                onClick={() => setShowTotpDisable(true)} 
+                                                className={styles.btnDanger}
+                                            >
+                                                Disable Authenticator
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <div style={{marginTop: '1rem'}}>
+                                            <p style={{fontSize: '0.9rem', color: '#f87171', marginBottom: '1rem'}}>
+                                                Enter the 6-digit code from your app to disable 2FA.
+                                            </p>
+                                            <div className={styles.verifyGrid}>
+                                                <div className={styles.formGroup} style={{marginBottom: 0}}>
+                                                    <input 
+                                                        className={styles.inputField}
+                                                        style={{width: '150px'}}
+                                                        placeholder="000000"
+                                                        maxLength={6}
+                                                        value={disableCode}
+                                                        onChange={(e) => setDisableCode(e.target.value)}
+                                                    />
+                                                </div>
+                                                <button 
+                                                    onClick={handleDisableTotp} 
+                                                    className={styles.btnDanger}
+                                                    disabled={disableCode.length !== 6 || totpLoading}
+                                                >
+                                                    Confirm Disable
+                                                </button>
+                                                <button 
+                                                    onClick={() => {
+                                                        setShowTotpDisable(false);
+                                                        setDisableCode('');
+                                                        setTotpError('');
+                                                    }}
+                                                    className={styles.uploadBtn}
+                                                    style={{border: 'none'}}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                            {totpError && <div className={styles.error}>{totpError}</div>}
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
                     </section>
                 </div>
-            </div>
-        </div>
     );
 };
 

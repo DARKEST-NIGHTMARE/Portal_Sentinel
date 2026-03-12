@@ -39,11 +39,12 @@ async def login(request: Request, response: Response, payload: schemas.LoginRequ
     )
 
     if not db_user:
-        return {"status": "2FA_REQUIRED", "user_id": db_user.id} 
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if db_user.is_totp_enabled:
         return {"status": "TOTP_REQUIRED", "user_id": db_user.id}
 
+    # If TOTP not enabled, fallback to Email 2FA (or direct login if preferred, but existing logic uses 2FA)
     otp_code = await auth_service.generate_otp(db_user.id)
     print(f"\n{'='*50}")
     print(f"📧 [2FA] OTP for {db_user.email}: {otp_code}")
@@ -93,7 +94,16 @@ async def verify_totp_login(request: Request, response: Response, payload: schem
     )
     
     response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, max_age=7*24*3600, samesite="lax", secure=True) # Secure=True recommended
-    return {"token": access_token}
+    return {
+        "token": access_token,
+        "user": {
+            "name": db_user.name, 
+            "email": db_user.email, 
+            "avatar_url": db_user.avatar_url, 
+            "role": db_user.role if hasattr(db_user, 'role') else "user",
+            "provider": db_user.provider
+        }
+    }
 
 
 @router.post("/totp/setup", response_model=schemas.TOTPSetupResponse)
@@ -106,20 +116,16 @@ async def totp_setup(current_user: dict = Depends(dependencies.get_current_user)
     
     return {"secret": secret, "provisioning_uri": provisioning_uri}
 
+@router.post("/totp/verify-setup", response_model=schemas.UserOut)
+async def totp_verify_setup(payload: schemas.TOTPVerifySetupRequest, current_user = Depends(dependencies.get_current_db_user), db: AsyncSession = Depends(get_db)):
+    auth_service = AuthService(db, None)
+    return await auth_service.enable_totp(current_user.id, payload.secret, payload.code)
 
-@router.post("/totp/verify-setup")
-async def totp_verify_setup(request: Request, payload: schemas.TOTPVerifySetupRequest, current_user: dict = Depends(dependencies.get_current_user), db: AsyncSession = Depends(get_db)):
-    email = current_user.get("sub")
-    http_client = request.app.state.http_client
-    auth_service = AuthService(db, http_client)
-    
-    from ..repositories.user_repo import UserRepository
-    user_repo = UserRepository(db)
-    db_user = await user_repo.get_by_email(email)
-    
-    await auth_service.enable_totp(db_user.id, payload.secret, payload.code)
-    
-    return {"message": "TOTP enabled successfully"}
+
+@router.post("/totp/disable", response_model=schemas.UserOut)
+async def totp_disable(payload: schemas.TOTPDisableRequest, current_user = Depends(dependencies.get_current_db_user), db: AsyncSession = Depends(get_db)):
+    auth_service = AuthService(db, None)
+    return await auth_service.disable_totp(current_user.id, payload.code)
 
 
 @router.post("/login/resend-otp")
@@ -158,13 +164,26 @@ async def google_login(request: Request, response: Response, payload: schemas.Go
         location_source = "IP (Approximate)"
 
     auth_service = AuthService(db, http_client)
-    access_token, refresh_token, db_user = await auth_service.authenticate_google(
+    db_user = await auth_service.authenticate_google(
         code=payload.code, 
         client_ip=client_ip, 
         location_str=location_str, 
         location_source=location_source, 
         lat=payload.latitude, 
         lon=payload.longitude, 
+        device_info=request.headers.get("User-Agent", "Unknown Device")
+    )
+
+    if db_user.is_totp_enabled:
+        return {"status": "TOTP_REQUIRED", "user_id": db_user.id}
+
+    access_token, refresh_token, _ = await auth_service.finalize_login_for_user(
+        user_id=db_user.id,
+        client_ip=client_ip,
+        location_str=location_str,
+        location_source=location_source,
+        lat=payload.latitude,
+        lon=payload.longitude,
         device_info=request.headers.get("User-Agent", "Unknown Device")
     )
 
@@ -198,13 +217,26 @@ async def clio_login(request: Request, response: Response, payload: schemas.Clio
         location_source = "IP (Approximate)"
 
     auth_service = AuthService(db, http_client)
-    access_token, refresh_token, db_user = await auth_service.authenticate_clio(
+    db_user = await auth_service.authenticate_clio(
         code=payload.code, 
         client_ip=client_ip, 
         location_str=location_str, 
         location_source=location_source, 
         lat=payload.latitude, 
         lon=payload.longitude, 
+        device_info=request.headers.get("User-Agent", "Unknown Device")
+    )
+
+    if db_user.is_totp_enabled:
+        return {"status": "TOTP_REQUIRED", "user_id": db_user.id}
+
+    access_token, refresh_token, _ = await auth_service.finalize_login_for_user(
+        user_id=db_user.id,
+        client_ip=client_ip,
+        location_str=location_str,
+        location_source=location_source,
+        lat=payload.latitude,
+        lon=payload.longitude,
         device_info=request.headers.get("User-Agent", "Unknown Device")
     )
 

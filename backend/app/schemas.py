@@ -101,3 +101,6 @@ class TOTPLoginRequest(BaseModel):
 
 class ProfileUpdateRequest(BaseModel):
     name: Optional[str] = None
+
+class TOTPDisableRequest(BaseModel):
+    code: str

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
-import { logoutUser } from "../redux/authSlice";
 import {
     fetchMatters,
     fetchContacts,
@@ -12,10 +11,8 @@ import {
     bookSlot,
     clearBookingResult,
 } from "../redux/clioSlice";
-import Navbar from "../components/layout/Navbar";
 import layoutStyles from "../components/common/Layout.module.css";
 import tableStyles from "../components/EmployeeTable.module.css";
-import dashStyles from "./Dashboard.module.css";
 import styles from "./ClioDashboard.module.css";
 
 const ClioDashboard = () => {
@@ -266,9 +263,6 @@ const ClioDashboard = () => {
     };
 
     return (
-        <div className={dashStyles.dashboardContainer}>
-            <Navbar user={user} onLogout={() => dispatch(logoutUser())} activePage="clio" />
-
             <div className={layoutStyles.glassCard}>
                 <div className={styles.headerRow}>
                     <h2>Clio Dashboard</h2>
@@ -297,7 +291,6 @@ const ClioDashboard = () => {
                     {renderTable()}
                 </div>
             </div>
-        </div>
     );
 };
 

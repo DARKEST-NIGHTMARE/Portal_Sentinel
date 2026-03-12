@@ -80,6 +80,8 @@
 .navLinks a:hover {
     background: rgba(255, 255, 255, 0.05);
     color: #f3f4f6;
+    box-shadow: 0 0 15px rgba(0, 191, 255, 0.15);
+    text-shadow: 0 0 8px rgba(0, 191, 255, 0.3);
 }
 
 .navLinks a.activeLink {
@@ -159,7 +161,8 @@
 
 .profileContainer:hover {
     background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(0, 191, 255, 0.3);
+    border-color: rgba(0, 191, 255, 0.4);
+    box-shadow: 0 0 20px rgba(0, 191, 255, 0.15);
 }
 
 .profileDropdown {
@@ -207,6 +210,7 @@
 .dropdownItem:hover {
     background: rgba(0, 191, 255, 0.1);
     color: #00bfff;
+    box-shadow: inset 0 0 15px rgba(0, 191, 255, 0.1);
 }
 
 .dropdownDivider {

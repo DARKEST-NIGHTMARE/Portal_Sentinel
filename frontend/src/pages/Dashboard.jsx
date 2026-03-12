@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchEmployees, setPage, setSearch, setSort, deleteEmployee, addEmployee } from "../redux/employeeSlice"; // 2. Import addEmployee
-import { logoutUser } from "../redux/authSlice";
-import Navbar from "../components/layout/Navbar";
 import EmployeeTable from "../components/employees/EmployeeTable";
 import employeeTableStyles from "../components/EmployeeTable.module.css";
-import styles from "./Dashboard.module.css";
 import buttonStyles from "../components/common/Button.module.css";
 import layoutStyles from "../components/common/Layout.module.css";
 import formStyles from "../components/common/Form.module.css";
@@ -37,10 +34,6 @@ const Dashboard = () => {
   };
 
   return (
-    <div className={styles.dashboardContainer}>
-      <Navbar user={user} onLogout={() => dispatch(logoutUser())}
-        activePage="dashboard" />
-
       <div className={layoutStyles.glassCard}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2>Employee Directory</h2>
@@ -83,7 +76,6 @@ const Dashboard = () => {
           <button disabled={page >= Math.ceil(total / 5)} onClick={() => dispatch(setPage(page + 1))} className={employeeTableStyles.paginationBtn}>Next</button>
         </div>
       </div>
-    </div>
   );
 };
 

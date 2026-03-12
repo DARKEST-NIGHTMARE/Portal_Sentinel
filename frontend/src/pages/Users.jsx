@@ -1,11 +1,8 @@
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllUsers, updateUserRole } from "../redux/usersListSlice";
-import { logoutUser } from "../redux/authSlice";
-import Navbar from "../components/layout/Navbar";
 import buttonStyles from "../components/common/Button.module.css";
 import layoutStyles from "../components/common/Layout.module.css";
-import styles from "./Dashboard.module.css";
 import employeeTableStyles from "../components/EmployeeTable.module.css";
 
 const BACKEND_URL = process.env.REACT_APP_API_URL;
@@ -44,9 +41,6 @@ const Users = () => {
   };
 
   return (
-    <div className={styles.dashboardContainer}>
-      <Navbar user={user} onLogout={() => dispatch(logoutUser())} activePage="users" />
-
       <div className={layoutStyles.glassCard}>
         <h2>System Users</h2>
         {/* <div className="table-wrapper" style={{ overflowX: "auto", width: "100%" }}> */}
@@ -114,7 +108,6 @@ const Users = () => {
           </tbody>
         </table>
       </div>
-    </div>
   );
 };
 
