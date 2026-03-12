@@ -20,6 +20,16 @@ export const verifyTwoFactor = createAsyncThunk("auth/verify2fa", async ({ user_
   }
 });
 
+export const verifyTotp = createAsyncThunk("auth/verifyTotp", async ({ user_id, code }, { rejectWithValue }) => {
+  try {
+    const res = await api.post("/api/auth/login/verify-totp", { user_id, code });
+    localStorage.setItem("token", res.data.token);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.detail || "TOTP verification failed");
+  }
+});
+
 export const resendOTP = createAsyncThunk("auth/resendOTP", async ({ user_id }, { rejectWithValue }) => {
   try {
     const res = await api.post("/api/auth/login/resend-otp", { user_id });
@@ -86,6 +96,7 @@ const authSlice = createSlice({
     loading: false,
     error: null,
     requiresTwoFactor: false,
+    requiresTotp: false,
     tempUserId: null,
   },
   reducers: {
@@ -98,6 +109,7 @@ const authSlice = createSlice({
     },
     clear2FA: (state) => {
       state.requiresTwoFactor = false;
+      state.requiresTotp = false;
       state.tempUserId = null;
       state.error = null;
     },
@@ -109,6 +121,9 @@ const authSlice = createSlice({
         state.loading = false;
         if (action.payload.status === "2FA_REQUIRED") {
           state.requiresTwoFactor = true;
+          state.tempUserId = action.payload.user_id;
+        } else if (action.payload.status === "TOTP_REQUIRED") {
+          state.requiresTotp = true;
           state.tempUserId = action.payload.user_id;
         } else {
           localStorage.setItem("token", action.payload.token);
@@ -127,6 +142,16 @@ const authSlice = createSlice({
         state.tempUserId = null;
       })
       .addCase(verifyTwoFactor.rejected, (state, action) => { state.loading = false; state.error = action.payload || "Verification Failed"; })
+
+      .addCase(verifyTotp.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(verifyTotp.fulfilled, (state, action) => {
+        state.loading = false;
+        state.token = action.payload.token;
+        state.user = action.payload.user;
+        state.requiresTotp = false;
+        state.tempUserId = null;
+      })
+      .addCase(verifyTotp.rejected, (state, action) => { state.loading = false; state.error = action.payload || "TOTP Verification Failed"; })
 
       .addCase(fetchUser.fulfilled, (state, action) => { state.user = action.payload; })
       .addCase(registerUser.fulfilled, (state) => { state.loading = false; })

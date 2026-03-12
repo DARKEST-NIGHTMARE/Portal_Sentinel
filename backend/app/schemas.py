@@ -86,3 +86,18 @@ class Verify2FARequest(BaseModel):
 
 class ResendOTPRequest(BaseModel):
     user_id: int
+
+class TOTPSetupResponse(BaseModel):
+    secret: str
+    provisioning_uri: str
+
+class TOTPVerifySetupRequest(BaseModel):
+    secret: str
+    code: str
+
+class TOTPLoginRequest(BaseModel):
+    user_id: int
+    code: str
+
+class ProfileUpdateRequest(BaseModel):
+    name: Optional[str] = None

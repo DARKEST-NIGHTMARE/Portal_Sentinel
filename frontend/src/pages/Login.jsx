@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { loginUser, registerUser, verifyTwoFactor, clear2FA, resendOTP } from "../redux/authSlice";
+import { loginUser, registerUser, verifyTwoFactor, clear2FA, resendOTP, verifyTotp } from "../redux/authSlice";
 import { useGoogleLogin } from "../hooks/useGoogleLogin";
 import { useClioLogin } from "../hooks/useClioLogin";
 import { useNavigate } from "react-router-dom";
@@ -35,7 +35,7 @@ const getUserCoordinates = () => {
 const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { token, error, loading, requiresTwoFactor, tempUserId } = useSelector((state) => state.auth);
+  const { token, error, loading, requiresTwoFactor, requiresTotp, tempUserId } = useSelector((state) => state.auth);
   const [regPicture, setRegPicture] = useState(null);
 
   const { loginGooglePopup } = useGoogleLogin();
@@ -132,6 +132,11 @@ const Login = () => {
   const handleVerifyOtp = (e) => {
     e.preventDefault();
     dispatch(verifyTwoFactor({ user_id: tempUserId, code: otpCode }));
+  };
+
+  const handleVerifyTotp = (e) => {
+    e.preventDefault();
+    dispatch(verifyTotp({ user_id: tempUserId, code: otpCode }));
   };
 
   const handleResend = async () => {
@@ -238,6 +243,60 @@ const Login = () => {
           >
             {resending ? "Sending..." : resendCooldown > 0 ? `Resend in ${formatTime(resendCooldown)}` : "🔄 Resend Code"}
           </button>
+          <button
+            onClick={handleBack}
+            style={{ background: "none", border: "none", color: "#a0aec0", cursor: "pointer", fontWeight: "600", fontSize: "0.85rem" }}
+          >
+            ← Back to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (requiresTotp) {
+    return (
+      <div className={`${layoutStyles.loginCard} ${layoutStyles.glassCard}`}>
+        <h1>Authenticator Verification</h1>
+        <p className="subtitle" style={{ color: "#718096", marginBottom: "1rem", fontSize: "0.9rem" }}>
+          Please enter the 6-digit code from your <strong>Authenticator App</strong> (e.g., Google Authenticator).
+        </p>
+
+        {error && (
+          <div style={{
+            background: "#fff5f5", color: "#c53030", border: "1px solid #feb2b2",
+            borderRadius: "8px", padding: "10px 14px", marginBottom: "1rem",
+            fontSize: "0.85rem", fontWeight: "600"
+          }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleVerifyTotp}>
+          <input
+            type="text"
+            value={otpCode}
+            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            placeholder="000000"
+            className={formStyles.inputField}
+            style={{
+              textAlign: "center", fontSize: "1.8rem", letterSpacing: "0.4em",
+              fontWeight: "700", paddingLeft: "0.4em"
+            }}
+            maxLength={6}
+            autoFocus
+            required
+          />
+          <button
+            type="submit"
+            className={`${buttonStyles.btn} ${buttonStyles.btnJwt}`}
+            disabled={loading || otpCode.length !== 6}
+          >
+            {loading ? "Verifying..." : "🔐 Verify & Login"}
+          </button>
+        </form>
+
+        <div style={{ marginTop: "12px", display: "flex", justifyContent: "center" }}>
           <button
             onClick={handleBack}
             style={{ background: "none", border: "none", color: "#a0aec0", cursor: "pointer", fontWeight: "600", fontSize: "0.85rem" }}

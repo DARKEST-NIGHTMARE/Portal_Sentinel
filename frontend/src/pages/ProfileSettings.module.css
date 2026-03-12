@@ -1,0 +1,176 @@
+.settingsContainer {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.settingsCard {
+    background: rgba(17, 24, 39, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    padding: 2.5rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.settingsHeader {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 1rem;
+}
+
+.settingsTitle {
+    font-size: 1.75rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #00bfff, #fff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin: 0;
+}
+
+/* --- Profile Section --- */
+.section {
+    margin-bottom: 3rem;
+}
+
+.sectionTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #f3f4f6;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.avatarSection {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.largeAvatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #1e293b;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.uploadBtn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #1e293b;
+    color: #e2e8f0;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.uploadBtn:hover {
+    background: rgba(0, 191, 255, 0.1);
+    border-color: #00bfff;
+    color: #00bfff;
+}
+
+.formGroup {
+    margin-bottom: 1.5rem;
+}
+
+.formGroup label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #9ca3af;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.inputField {
+    width: 100%;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #f3f4f6;
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+
+.inputField:focus {
+    outline: none;
+    border-color: #00bfff;
+    box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.1);
+}
+
+.btnPrimary {
+    background: linear-gradient(135deg, #00bfff, #38b2ac);
+    color: #020617;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btnPrimary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(0, 191, 255, 0.4);
+    filter: brightness(1.1);
+}
+
+/* --- TOTP Section --- */
+.totpCard {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.qrContainer {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    display: inline-block;
+    margin-bottom: 1.5rem;
+}
+
+.totpStatus {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.statusIndicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.statusEnabled { background: #10b981; box-shadow: 0 0 8px #10b981; }
+.statusDisabled { background: #6b7280; }
+
+.verifyGrid {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.error {
+    color: #f87171;
+    font-size: 0.85rem;
+    margin-top: 5px;
+}
+
+.success {
+    color: #34d399;
+    font-size: 0.85rem;
+    margin-top: 5px;
+}

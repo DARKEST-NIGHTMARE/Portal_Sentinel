@@ -145,6 +145,90 @@
     box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
 }
 
+.profileContainer {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 50px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.profileContainer:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(0, 191, 255, 0.3);
+}
+
+.profileDropdown {
+    position: absolute;
+    top: calc(100% + 15px);
+    right: 0;
+    min-width: 220px;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    animation: fadeInScale 0.2s ease-out;
+    z-index: 1001;
+}
+
+@keyframes fadeInScale {
+    from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.dropdownHeader {
+    padding: 15px;
+    border-bottom: 1px solid #1e293b;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.dropdownItem {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    color: #9ca3af;
+    text-decoration: none;
+    background: none;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.dropdownItem:hover {
+    background: rgba(0, 191, 255, 0.1);
+    color: #00bfff;
+}
+
+.dropdownDivider {
+    height: 1px;
+    background: #1e293b;
+    margin: 5px 0;
+}
+
+.logoutItem {
+    color: #f87171;
+}
+
+.logoutItem:hover {
+    background: rgba(248, 113, 113, 0.1);
+    color: #fca5a5;
+}
+
+.dropdownIcon {
+    font-size: 1.1rem;
+    opacity: 0.8;
+}
+
 @media (max-width: 768px) {
     .navbar {
         flex-direction: column;

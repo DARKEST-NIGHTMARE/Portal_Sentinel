@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Form, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc
+import os, uuid
 from typing import List
 
 from .. import models, schemas
@@ -38,7 +39,48 @@ async def get_user_info(
         "email": db_user.email,
         "avatar_url": db_user.avatar_url,  
         "role": db_user.role,
-        "provider": db_user.provider
+        "provider": db_user.provider,
+        "is_totp_enabled": db_user.is_totp_enabled
+    }
+
+@router.put("/me/profile")
+async def update_my_profile(
+    name: str = Form(None),
+    avatar: UploadFile = File(None),
+    current_user: dict = Depends(dependencies.get_current_user),
+    db: AsyncSession = Depends(database.get_db)
+):
+    email = current_user.get("sub")
+    from ..repositories.user_repo import UserRepository
+    user_repo = UserRepository(db)
+    db_user = await user_repo.get_by_email(email)
+    
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    update_data = {}
+    if name:
+        update_data["name"] = name
+        
+    if avatar:
+        os.makedirs("static/profiles", exist_ok=True)
+        file_extension = avatar.filename.split(".")[-1]
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        file_path = f"static/profiles/{unique_filename}"
+        
+        contents = await avatar.read()
+        with open(file_path, "wb") as f:
+            f.write(contents)
+            
+        update_data["avatar_url"] = f"/static/profiles/{unique_filename}"
+        
+    await user_repo.update(db_user, **update_data)
+    
+    return {
+        "id": db_user.id,
+        "name": db_user.name,
+        "email": db_user.email,
+        "avatar_url": db_user.avatar_url
     }
 
 @router.put("/{user_id}/role")

@@ -12,6 +12,7 @@ const Login = React.lazy(() => import("./pages/Login"));
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 const Users = React.lazy(() => import("./pages/Users"));
 const ClioDashboard = React.lazy(() => import("./pages/ClioDashboard"));
+const ProfileSettings = React.lazy(() => import("./pages/ProfileSettings"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
               <Route path="/users" element={<PrivateRoute><Users /></PrivateRoute>} />
               <Route path="/security" element={<PrivateRoute><SecurityDashboard /></PrivateRoute>} />
               <Route path="/clio" element={<PrivateRoute><ClioDashboard /></PrivateRoute>} />
+              <Route path="/settings" element={<PrivateRoute><ProfileSettings /></PrivateRoute>} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

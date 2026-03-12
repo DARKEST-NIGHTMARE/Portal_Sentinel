@@ -9,6 +9,7 @@ from ..repositories.session_repo import SessionRepository
 from ..services.security_service import SecurityService
 from ..models import User, EventType, ClioConnection, OTPCode
 import httpx
+import pyotp
 from ..core.config import settings
 
 class AuthService:
@@ -325,3 +326,26 @@ class AuthService:
         if not db_user:
             raise HTTPException(status_code=404, detail="User not found")
         return await self._finalize_login(db_user, client_ip, location_str, location_source, lat, lon, device_info)
+
+    async def verify_totp_login(self, user_id: int, code: str):
+        db_user = await self.user_repo.get_by_id(user_id)
+        if not db_user or not db_user.is_totp_enabled or not db_user.totp_secret:
+            raise HTTPException(status_code=400, detail="TOTP is not enabled for this account")
+        
+        totp = pyotp.TOTP(db_user.totp_secret)
+        if not totp.verify(code):
+            raise HTTPException(status_code=401, detail="Invalid TOTP code")
+        
+        return db_user
+
+    async def enable_totp(self, user_id: int, secret: str, code: str):
+        db_user = await self.user_repo.get_by_id(user_id)
+        if not db_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        totp = pyotp.TOTP(secret)
+        if not totp.verify(code):
+            raise HTTPException(status_code=401, detail="Invalid verification code")
+        
+        await self.user_repo.update(db_user, totp_secret=secret, is_totp_enabled=True)
+        return db_user
